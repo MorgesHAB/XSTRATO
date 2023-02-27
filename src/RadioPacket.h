@@ -32,7 +32,7 @@ typedef struct __attribute__((__packed__)) radio_packet {
 
 	uint8_t img_packet_nbr;
 	uint8_t img_packet_nbr_tot;
-
+	uint8_t img_bytes;
 	uint8_t image_data[IMAGE_LENGTH_PER_PACKET];
 
 } radio_packet_t;

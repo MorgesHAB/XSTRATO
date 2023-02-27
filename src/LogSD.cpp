@@ -110,6 +110,22 @@ void getFile(fs::FS &fs, const char *path, uint8_t* buf, uint8_t size) {
     file.close();
 }
 
+size_t load_img_buffer(const char *path, uint8_t* imgbuf) {
+    File file = SD_MMC.open(path);
+    if (!file) {
+        USBSerial.println("Failed to open image for reading");
+        return false;
+    }
+
+    USBSerial.println("Reading" + String(file.size()) + "B");
+    size_t size = 0;
+    while (file.available() && size < IMG_BUFFER_SIZE) {
+        imgbuf[size++] = file.read();
+    }
+    file.close();
+    return size;
+}
+
 void readFile(fs::FS &fs, const char *path) {
     USBSerial.printf("Reading file: %s\n", path);
 

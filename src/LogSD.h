@@ -10,6 +10,8 @@
 #define SD_D2                   4
 #define SD_D3                   5
 
+#define IMG_BUFFER_SIZE         50000       // should be enough
+
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
 void createDir(fs::FS &fs, const char *path);
 void removeDir(fs::FS &fs, const char *path);
@@ -22,5 +24,6 @@ void testFileIO(fs::FS &fs, const char *path);
 void getFile(fs::FS &fs, const char *path, uint8_t* buf, uint8_t size);
 void logAppendFile(fs::FS &fs, const char *path, const uint8_t *message, size_t length);
 void save_image(fs::FS &fs, const char *path, const uint8_t *message, size_t length);
+size_t load_img_buffer(const char *path, uint8_t* imgbuf);
 
 void test_SD_card();

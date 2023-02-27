@@ -41,8 +41,8 @@
 #define BME_I2C_SDA             17
 #define BME_I2C_SCL             18
 
-#define GPS_UART1_TX_PIN        3
-#define GPS_UART1_RX_PIN        8
+#define GPS_UART1_TX_PIN        8
+#define GPS_UART1_RX_PIN        3
 
 #define NEOPIXEL_PIN            21
 #define GREEN_LED_PIN           14
@@ -55,6 +55,8 @@
 #define LORA_BUFFER_SIZE        256
 
 #define SEALEVELPRESSURE_HPA    (1013.25)
+
+#define LINE_TIMER              100
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // WiFi AP parameters
@@ -80,8 +82,21 @@ uint32_t colors[] = {
     0xFF0800
 };
 
+enum XR2H_state { TELEMETRY_TX, NEW_IMAGE_TX, IMAGE_TX };
+// XR2H_state xr2h_state = TELEMETRY_TX;
+XR2H_state xr2h_state = NEW_IMAGE_TX; // TMP !!!!!!!!!!!!!!!!!!!!!
+
+uint8_t xr2h_period_sec = 2; // seconds
+
 uint8_t LoRa_tx_buf[LORA_BUFFER_SIZE];
 uint8_t LoRa_rx_buf[LORA_BUFFER_SIZE];
+
+uint8_t yohan_buffer[256];
+
+uint8_t img_buffer[IMG_BUFFER_SIZE]; 
+uint8_t _img_packet_nbr = 0;
+uint8_t _img_packet_nbr_tot = 0;
+uint8_t _img_bytes_in_last_packet = 0;
 
 void server_loop();
 void BME_loop();
@@ -96,12 +111,13 @@ void print_packet(radio_packet_t packet);
 
 void setup() {
     // GPS
-    Serial1.begin(4800, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // GPS
+    // Serial1.begin(4800, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // GPS
+    Serial1.begin(115200, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // board Yohan
     // Serial1.begin(4800, 134217756U, 8, 3); // 3 8 also
     // Serial2.begin(9600, 134217756U, 46, 9);
     SERIAL_.begin(9600);
-    pinMode(14, OUTPUT);
-    pinMode(43, OUTPUT);
+    pinMode(GREEN_LED_PIN, OUTPUT);
+    digitalWrite(GREEN_LED_PIN, HIGH);
 
     SERIAL_.println("XSTRATO is alive !");
 
@@ -152,6 +168,7 @@ void setup() {
     USBSerial.println(myIP);
     server.begin();
     USBSerial.println("Server started");
+
 }
 
 void loop() {
@@ -164,32 +181,87 @@ void loop() {
 }
 
 void XSTRATO_R2H_loop() {
-    // create empty packet
-    static uint32_t packetNbr = 0;
-    radio_packet_t packet;
+    //////////////////////////////////////////
+    static uint8_t s = 0;
+    static uint32_t last_yohan_time = 0;
+    static bool new_packet = false;
+    while (Serial1.available() && s < LORA_BUFFER_SIZE) {
+        yohan_buffer[s++] = Serial1.read();
+        last_yohan_time = millis();
+        new_packet = true;
+    }
+    if (millis() - last_yohan_time > LINE_TIMER && new_packet) {
+        LoRa.beginPacket();
+        LoRa.write(yohan_buffer, s);
+        LoRa.endPacket(true);  // true = asynch
+        s = 0;
+        new_packet = false;
+    }
+    //////////////////////////////////////////
+    static uint32_t last_tx_time = 0;
+    if (millis() - last_tx_time > xr2h_period_sec * 1000) {
+        // create empty packet
+        last_tx_time = millis();
+        static uint32_t packetNbr = 0;
+        radio_packet_t packet = {0};
 
-    packet.prefix = XSTRATO_prefix;
-    packet.packet_nbr = packetNbr++;
+        packet.prefix = XSTRATO_prefix;
+        packet.packet_nbr = packetNbr++;
 
-    fill_BME_data(&packet);
-    packet.bat_level = analogRead(BATTERY_MEASURE_PIN);  // Coop Varta, 18.02.2023  v = 3100
-    packet.SD_Bytes_used = SD_MMC.usedBytes();
-    packet.rssi = LoRa.rssi();
-    packet.snr = LoRa.packetSnr();
+        fill_BME_data(&packet);
+        packet.bat_level = analogRead(BATTERY_MEASURE_PIN);  // Coop Varta, 18.02.2023  v = 3100
+        packet.SD_Bytes_used = SD_MMC.usedBytes();
+        packet.rssi = LoRa.rssi();
+        packet.snr = LoRa.packetSnr();
+        packet.img_packet_nbr = 0;
+        packet.img_packet_nbr_tot = 0;
 
-    bool r = capture_img_and_save_in_SD(FRAMESIZE_HD);
-    USBSerial.println("Cam to SD result: " + String((r) ? "Success" : "Fail"));
-    // LoRa_send_file("/texte.txt"); // send image
-    
+        // bool r = capture_img_and_save_in_SD(FRAMESIZE_HD);
+        bool r = capture_img_and_save_in_SD(FRAMESIZE_96X96);
+        USBSerial.println("Cam to SD result: " + String((r) ? "Success" : "Fail"));
+        
+        // LoRa_send_file("/texte.txt"); // send image
+        switch (xr2h_state) {
+            case NEW_IMAGE_TX: {
+                size_t img_bytes = load_img_buffer("/img_0.jpeg", img_buffer);  // TODO update name !
+                if (img_bytes) {
+                    _img_packet_nbr_tot = img_bytes / IMAGE_LENGTH_PER_PACKET + 1;
+                    _img_bytes_in_last_packet = img_bytes % IMAGE_LENGTH_PER_PACKET;
+                    USBSerial.println("_img_packet_nbr_tot = " + String(_img_packet_nbr_tot) + " byte_modulo: " + String(_img_bytes_in_last_packet));
+                    xr2h_state = IMAGE_TX;
+                } else {
+                    xr2h_state = TELEMETRY_TX;
+                    return;
+                }
+            }
+            // break;
+            case IMAGE_TX: {
+                _img_packet_nbr++;
+                packet.img_packet_nbr = _img_packet_nbr;
+                packet.img_packet_nbr_tot = _img_packet_nbr_tot;
+                packet.img_bytes = IMAGE_LENGTH_PER_PACKET;
+                memcpy(packet.image_data, img_buffer + (_img_packet_nbr-1) * IMAGE_LENGTH_PER_PACKET, IMAGE_LENGTH_PER_PACKET);
+                if (_img_packet_nbr == _img_packet_nbr_tot) {
+                    USBSerial.println("Complete img_tx");
+                    packet.img_bytes = _img_bytes_in_last_packet;
+                    xr2h_state = TELEMETRY_TX;
+                    _img_packet_nbr = 0;
+                    _img_packet_nbr_tot = 0;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+
+        // LoRa send packet
+        LoRa.beginPacket();
+        size_t packetlength = (xr2h_state == TELEMETRY_TX) ? LoRa_telemetry_packet_size : LoRa_full_packet_size;
+        LoRa.write((uint8_t *)&packet, packetlength);
+        LoRa.endPacket(true);  // true = asynch
+    }
     // TODO: fun Check if LoRa receive a cmd
     LoRa_handle_cmd();
-
-    // LoRa send packet
-    LoRa.beginPacket();
-    LoRa.write((uint8_t *)&packet, LoRa_telemetry_packet_size); // TODO not always full packet !
-    LoRa.endPacket(true);  // true = asynch
-
-    delay(8000);
 }
 
 bool capture_img_and_save_in_SD(framesize_t framesize, int jpeg_quality) {
@@ -211,7 +283,7 @@ bool capture_img_and_save_in_SD(framesize_t framesize, int jpeg_quality) {
 
     // Save picture in memory
     char filename[50];
-    sprintf(filename, "/rx_img_%u.jpeg", pic_Nbr++);
+    sprintf(filename, "/img_%u.jpeg", pic_Nbr++);
     save_image(SD_MMC, filename, fb->buf, fb->len);
 
     // return the frame buffer back to be reused
@@ -224,28 +296,111 @@ bool capture_img_and_save_in_SD(framesize_t framesize, int jpeg_quality) {
 }
 
 void LoRa_handle_cmd() {
+    // set xr2h_period, sf, bw, etc
+    int packetSize = LoRa.parsePacket();
+    if (packetSize) {
+        // received a packet
+        SERIAL_.print("Received packet with RSSI: " + String(LoRa.packetRssi()) + " dBm");
+        // read packet
+        size_t size = 0;
+        static String memoryPacket = "";
+        while (LoRa.available() && size < LORA_BUFFER_SIZE) {
+            char c = LoRa.read();
+            memoryPacket = memoryPacket + c;
+            size++;
+        }
+        SERIAL_.println(" with size: " + String(size));
 
+        // for (uint8_t i = 0; i < size; i++) {
+            //int x = LoRa_rx_buf[i];
+            Serial1.print(memoryPacket);
+            // USBSerial.print((char) x);
+            USBSerial.println(memoryPacket);
+        // }
+        // Serial1.print((char*) LoRa_rx_buf, size);
+
+        // Check if cmd Lionel
+        if (LoRa_rx_buf[0] == 's' && LoRa_rx_buf[1] == 'f') {
+            String sf(LoRa_rx_buf + 2, size - 2);
+            Serial.println("Spreading Factor updated: " + sf);
+            LoRa.setSpreadingFactor(sf.toInt());
+        } else if (LoRa_rx_buf[0] == 'b' && LoRa_rx_buf[1] == 'w') {
+            String bw(LoRa_rx_buf + 2, size - 2);
+            Serial.println("Bandwidth updated: " + bw);
+            LoRa.setSignalBandwidth(bw.toInt());
+        } else if (LoRa_rx_buf[0] == 'p' && LoRa_rx_buf[1] == 'e') {
+            String bw(LoRa_rx_buf + 2, size - 2);
+            Serial.println("Bandwidth updated: " + bw);
+            LoRa.setSignalBandwidth(bw.toInt());
+        }
+        // } else if (LoRa_rx_buf[0] == 'c' && LoRa_rx_buf[1] == 'r') {
+        //     String cr(LoRa_rx_buf + 2, size - 2);
+        //     Serial.println("Coding rate updated: " + cr);
+        //     LoRa.setCodingRate4(cr.toInt());
+        // }
+    }
 }
 
 void XSTRATO_GS_loop() {
+    // Yohan part
+    static uint8_t s = 0;
+    static uint32_t last_yohan_time = 0;
+    static bool new_packet = false;
+    static String memoryPacket = "";
+    while (Serial1.available() && s < LORA_BUFFER_SIZE) {
+        char c = Serial1.read();
+        memoryPacket = memoryPacket + c;
+        last_yohan_time = millis();
+        s++;
+        new_packet = true;
+    }
+    if (millis() - last_yohan_time > LINE_TIMER && new_packet) {
+        LoRa.beginPacket();
+        LoRa.print(memoryPacket);
+        LoRa.endPacket(true);  // true = asynch
+        s = 0;
+        new_packet = false;
+        USBSerial.println("YOOOOOHAN send cmd!!!!!");
+        USBSerial.println(memoryPacket);
+        memoryPacket = "";
+
+    }
+    // XSTRATO part
+    static uint32_t pic_Nbr = 0;
     // try to parse packet
     int packetSize = LoRa.parsePacket();
     if (packetSize) {
         // received a packet
-        SERIAL_.println("Received packet with RSSI: " + String(LoRa.packetRssi()) + " dBm");
-
+        SERIAL_.print("Received packet with RSSI: " + String(LoRa.packetRssi()) + " dBm");
         // read packet
         size_t size = 0;
         while (LoRa.available() && size < LORA_BUFFER_SIZE) {
             LoRa_rx_buf[size++] = LoRa.read();
         }
+        SERIAL_.println(" with size: " + String(size));
+
         radio_packet_t rxpacket;
         memcpy(&rxpacket, LoRa_rx_buf, size);
 
-        // save buf in SD memory
-        logAppendFile(SD_MMC, "/rx_log_file.txt", LoRa_rx_buf, size);
+        if (rxpacket.prefix == XSTRATO_prefix) {
+            if (rxpacket.img_packet_nbr != 0) {
+                // => it means image present in packet
+                memcpy(img_buffer+((rxpacket.img_packet_nbr-1)*IMAGE_LENGTH_PER_PACKET), rxpacket.image_data, rxpacket.img_bytes);
+                if (rxpacket.img_packet_nbr == rxpacket.img_packet_nbr_tot) { // image finished
+                    char filename[50];
+                    sprintf(filename, "/rx_img_%u.jpeg", pic_Nbr++);
+                    USBSerial.println("last packet rx, Saving image! rxsize: " + String((rxpacket.img_packet_nbr_tot-1)*IMAGE_LENGTH_PER_PACKET+rxpacket.img_bytes));
+                    save_image(SD_MMC, filename, img_buffer, (rxpacket.img_packet_nbr_tot-1)*IMAGE_LENGTH_PER_PACKET+rxpacket.img_bytes);
+                }
+            }
+            // save buf in SD memory
+            logAppendFile(SD_MMC, "/rx_log_file.txt", LoRa_rx_buf, size);
 
-        print_packet(rxpacket);
+            print_packet(rxpacket);
+        } else {
+            USBSerial.println("--------------->Received packet with wrong prefix!!!!!! (Yohan?)");
+            Serial1.write(LoRa_rx_buf, size);
+        }
     }
 }
 
@@ -272,6 +427,10 @@ void loop_debug() {
     // server_loop();
 }
 
+void add_img_to_packet(radio_packet_t packet, const char *path) {
+    memcpy(packet.image_data, img_buffer, IMAGE_LENGTH_PER_PACKET);
+}
+
 void LoRa_send_file(const char *path, uint8_t length) {
     // send packet
     LoRa.beginPacket();
@@ -294,11 +453,12 @@ void fill_BME_data(radio_packet_t *packet) {
 
 void print_packet(radio_packet_t packet) {
     // USBSerial.println("Printing received packet content: ");
-    USBSerial.printf("PacketNbr: %u ", packet.packet_nbr);
-    USBSerial.printf("\n\rBME: %u hPa | %.1f °C | %.1f %%", packet.bme_press, packet.bme_temp, packet.bme_hum);
-    USBSerial.printf("\n\rBattery: %u ", packet.bat_level);
+    USBSerial.printf("PacketNbr: %u", packet.packet_nbr);
+    float altitude = 44330.0 * (1.0 - pow(packet.bme_press / SEALEVELPRESSURE_HPA, 0.1903));
+    USBSerial.printf("\n\rBME: %u hPa | %.1f °C | %.1f %% | Alt %.1f", packet.bme_press, packet.bme_temp, packet.bme_hum, altitude);
+    USBSerial.printf("\n\rBattery: %u | SD: %u", packet.bat_level, packet.SD_Bytes_used);
     USBSerial.printf("\n\rLoRa strato: SNR: %.1f  RSSI: %d ", packet.snr, packet.rssi);
-
+    USBSerial.printf("\n\rImage Tx:  RxPacketNbr/tot:  %u/%u   %uB", packet.img_packet_nbr, packet.img_packet_nbr_tot, packet.img_bytes);
     USBSerial.println("\n\r#############################################");
 }
 
