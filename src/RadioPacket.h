@@ -2,7 +2,7 @@
 // XSTRATO packet structure
 #include <Arduino.h>
 
-#define IMAGE_LENGTH_PER_PACKET		210		// Byte/packet
+#define IMAGE_LENGTH_PER_PACKET		219		// Byte/packet
 
 typedef struct __attribute__((__packed__)) radio_packet {
     // Packet content
