@@ -102,6 +102,8 @@ uint8_t _img_packet_nbr = 0;
 uint8_t _img_packet_nbr_tot = 0;
 uint8_t _img_bytes_in_last_packet = 0;
 
+char filename[50];
+
 void server_loop();
 void BME_loop();
 void LoRa_send_file(const char *path, uint8_t length = 250U);
@@ -114,6 +116,7 @@ void print_packet(radio_packet_t packet);
 
 
 void setup() {
+    USBSerial.setTimeout(0);
     // GPS
     // Serial1.begin(4800, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // GPS
     Serial1.begin(115200, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // board Yohan
@@ -198,6 +201,7 @@ void XSTRATO_R2H_loop() {
     static uint8_t s = 0;
     static uint32_t last_yohan_time = 0;
     static uint32_t last_yohan_send_packet_time = 0;
+    static uint32_t last_time_img_tx = 0;
     static bool new_packet = false;
     static bool yohan_send_packet = false;
     while (Serial1.available() && s < LORA_BUFFER_SIZE) {
@@ -205,7 +209,7 @@ void XSTRATO_R2H_loop() {
         last_yohan_time = millis();
         new_packet = true;
     }
-    if (millis() - last_yohan_time > LINE_TIMER && new_packet && xr2h_state == TELEMETRY_TX && millis()-last_yohan_send_packet_time > 5000) {
+    if (millis() - last_yohan_time > LINE_TIMER && new_packet && xr2h_state == TELEMETRY_TX && millis()-last_time_img_tx > 5000) {
         LoRa.beginPacket();
         LoRa.write(yohan_buffer, s);
         LoRa.endPacket(true);  // true = asynch
@@ -235,20 +239,19 @@ void XSTRATO_R2H_loop() {
 
         // bool r = capture_img_and_save_in_SD(FRAMESIZE_HD);
         // bool r = capture_img_and_save_in_SD(FRAMESIZE_96X96);
-        bool r = capture_img_and_save_in_SD(img_framesize);
-        USBSerial.println("Cam to SD result: " + String((r) ? "Success" : "Fail"));
         
         // LoRa_send_file("/texte.txt"); // send image
-        static uint32_t last_time_img_tx = 0;
         // if (millis() - last_time_img_tx > 300000 && yohan_send_packet && millis() - last_yohan_send_packet_time > 1000) {
-        if (millis() - last_time_img_tx > 60000 && yohan_send_packet && millis() - last_yohan_send_packet_time > 1000) {
+        if (millis() - last_time_img_tx > 300000 && yohan_send_packet && millis() - last_yohan_send_packet_time > 1000) {
             yohan_send_packet = false;
             xr2h_state = NEW_IMAGE_TX;
         }
 
         switch (xr2h_state) {
             case NEW_IMAGE_TX: {
-                size_t img_bytes = load_img_buffer("/img_0.jpeg", img_buffer);  // TODO update name !
+                bool r = capture_img_and_save_in_SD(img_framesize);
+                USBSerial.println("Cam to SD result: " + String((r) ? "Success" : "Fail"));
+                size_t img_bytes = load_img_buffer(filename, img_buffer);  // TODO update name !
                 if (img_bytes) {
                     _img_packet_nbr_tot = img_bytes / IMAGE_LENGTH_PER_PACKET + 1;
                     _img_bytes_in_last_packet = img_bytes % IMAGE_LENGTH_PER_PACKET;
@@ -286,7 +289,7 @@ void XSTRATO_R2H_loop() {
         LoRa.write((uint8_t *)&packet, packetlength);
         LoRa.endPacket(true);  // true = asynch
     }
-    // TODO: fun Check if LoRa receive a cmd
+    // TODO: fun Check if LoRa receive a cmdfilename
     LoRa_handle_cmd();
 }
 
@@ -308,7 +311,7 @@ bool capture_img_and_save_in_SD(framesize_t framesize, int jpeg_quality) {
     // display_image(fb->width, fb->height, fb->pixformat, fb->buf, fb->len);
 
     // Save picture in memory
-    char filename[50];
+    // char filename[50];
     sprintf(filename, "/img_%u.jpeg", pic_Nbr++);
     save_image(SD_MMC, filename, fb->buf, fb->len);
 
