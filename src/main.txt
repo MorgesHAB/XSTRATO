@@ -116,10 +116,10 @@ void print_packet(radio_packet_t packet);
 
 
 void setup() {
-    USBSerial.setTimeout(0);
+    USBSerial.setTimeout(0); // really useful ?
     // GPS
-    // Serial1.begin(4800, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // GPS
-    Serial1.begin(115200, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // board Yohan
+    Serial1.begin(9600, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // GPS
+    // Serial1.begin(115200, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // board Yohan
     // Serial1.begin(4800, 134217756U, 8, 3); // 3 8 also
     // Serial2.begin(9600, 134217756U, 46, 9);
     SERIAL_.begin(9600);

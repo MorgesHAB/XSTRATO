@@ -1,0 +1,38 @@
+Log file, date: 2023-02-28 13:54:12.369230
+XSTRATO is alive !
+Led inited
+SD Card Mounted :-)
+Setup() done
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 98
+BME: 663 hPa | 23.3 °C | 4.0 % | Alt 3437.5
+Battery: 2341 | SD: 23724032
+LoRa strato: SYOOOOOHAN send cmd!!!!!
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 99
+BME: 655 hPa | 23.2 °C | 4.0 % | Alt 3531.8
+Battery: 2309 | SD: 23724032
+LoRa strato: SNR: -16.8  RSSI: -98 
+Image Tx:  RxPacketNbr/tot:  1/6   219B
+#############################################
+YOOOOOHAN send cmd!!!!!
+Received packet with RSSI: -98 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 101
+BME: 643 hPa | 22.9 °C | 4.0 % | Alt 3675.1
+Battery: 2315 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  3/6   219B
+#############################################
+ with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 102
+BME: 639 hPa | 22.9 °C | 4.0 % | Alt 3723.4
+Battery: 2309 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  4/6   219B
+#############################################

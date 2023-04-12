@@ -1,5 +1,27 @@
 #include "Camera.h"
 
+#define PWDN_GPIO_NUM   -1 //47 // CAM PWR (PMOS)
+#define RESET_GPIO_NUM  -1
+#define XCLK_GPIO_NUM   41
+#define SIOD_GPIO_NUM    1
+#define SIOC_GPIO_NUM    2
+
+#define Y9_GPIO_NUM     42
+#define Y8_GPIO_NUM     40
+#define Y7_GPIO_NUM     39
+#define Y6_GPIO_NUM     37
+#define Y5_GPIO_NUM     35
+#define Y4_GPIO_NUM     48
+#define Y3_GPIO_NUM     45
+#define Y2_GPIO_NUM     36
+#define VSYNC_GPIO_NUM  43
+#define HREF_GPIO_NUM   44
+#define PCLK_GPIO_NUM   38
+
+#define CAM_PWR_N_PIN   47
+
+
+
 bool setup_cam(framesize_t framesize, int jpeg_quality) {
     // Serial.end();
     // pinMode(VSYNC_GPIO_NUM, INPUT);
@@ -52,7 +74,7 @@ bool setup_cam(framesize_t framesize, int jpeg_quality) {
     sensor_t* s = esp_camera_sensor_get();
     // initial sensors are flipped vertically and colors are a bit saturated
     s->set_vflip(s, 1);  // flip it back
-    //   s->set_brightness(s, 1);   // up the brightness just a bit
+    s->set_brightness(s, 1);   // up the brightness just a bit
     // s->set_saturation(s, -2);  // lower the saturation
 
     // drop down frame size for higher initial frame rate

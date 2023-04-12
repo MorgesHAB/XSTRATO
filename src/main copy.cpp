@@ -1,0 +1,761 @@
+//////////////////////////////////////////////////////////////////////////
+//  XSTRATO Stratospheric Balloon Mission 1
+//
+//  EPFL Rocket Team - Nordend Project 2023
+//
+//  Lionel Isoz
+//  26.02.2023 
+//////////////////////////////////////////////////////////////////////////
+
+// Librairies
+#include <Arduino.h>
+// WiFi
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiAP.h>
+// LoRa
+#include <SPI.h>
+#include <LoRa.h>
+// BME680 Sensor
+#include <Wire.h>
+// #include <Adafruit_Sensor.h> // need to change sensor_t to sensor_tt (conflict with esp_cam sensor_t)
+#include <Adafruit_BME680.h>
+// GPS u-blox M8Q
+#include <TinyGPSPlus.h>
+// WS2812B LED
+#include <Adafruit_NeoPixel.h>
+
+#include <TeleFile.h>
+#include <Capsule.h>
+
+#include "RadioPacket.h"
+#include "LogSD.h"
+#include "Camera.h"
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+#define DEBUG                   true
+
+#define LORA_FREQ   868.0E6
+#define LORA_POWER  3
+#define LORA_BW     125.0e3
+#define LORA_SF     7
+#define LORA_CR     5
+#define LORA_PREAMBLE_LEN 8
+#define LORA_SYNC_WORD    0x12
+#define LORA_CRC          true
+#define LORA_CURRENT_LIMIT 120
+
+// PIN/GPIO Definition
+#define LORA_SCK                9
+#define LORA_MOSI               10
+#define LORA_MISO               11
+#define LORA_CS                 46
+#define LORA_INT0               12
+#define LORA_RST                -1
+
+#define BME_I2C_SDA             17
+#define BME_I2C_SCL             18
+
+#define GPS_UART1_TX_PIN        8
+#define GPS_UART1_RX_PIN        3
+
+#define NEOPIXEL_PIN            21
+#define GREEN_LED_PIN           14
+#define BATTERY_MEASURE_PIN     13
+
+
+// XSTRATO supports only USBSerial
+#define SERIAL_                 USBSerial
+
+#define LORA_BUFFER_SIZE        256
+
+#define SEALEVELPRESSURE_HPA    (1013.25)
+
+#define LINE_TIMER              100
+
+///////////////////////////////////////////////////////////////////////////////////////
+// WiFi AP parameters
+const char *ssid = "XSTRATO Wi-Fi";
+const char *password = "bonjour123$";
+
+// WiFi IP Address:   http://192.168.4.1/H
+// WiFiServer server(80); 
+
+Adafruit_NeoPixel led(1, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800); // 1 led
+
+Adafruit_BME680 bme; // I2C
+TwoWire I2CBME = TwoWire(0);
+
+uint32_t colors[] = {
+    0x000000,
+    0x32A8A0,
+    0x0000FF,
+    0xFFEA00,
+    0x00FF00,
+    0xFF0000,
+    0xCF067C,
+    0xFF0800
+};
+
+enum XR2H_state { TELEMETRY_TX, NEW_IMAGE_TX, IMAGE_TX };
+XR2H_state xr2h_state = TELEMETRY_TX;
+// XR2H_state xr2h_state = NEW_IMAGE_TX; // TMP !!!!!!!!!!!!!!!!!!!!!
+
+uint8_t xr2h_period_sec = 19; // seconds
+uint16_t xr2h_img_period_msec = 4000; // mseconds
+
+framesize_t img_framesize = FRAMESIZE_96X96;
+
+uint8_t LoRa_tx_buf[LORA_BUFFER_SIZE];
+uint8_t LoRa_rx_buf[LORA_BUFFER_SIZE];
+
+uint8_t yohan_buffer[256];
+uint8_t cmd_buffer[256];
+
+uint8_t img_buffer[IMG_BUFFER_SIZE]; 
+uint8_t _img_packet_nbr = 0;
+uint8_t _img_packet_nbr_tot = 0;
+uint8_t _img_bytes_in_last_packet = 0;
+
+char filename[50];
+
+void server_loop();
+void BME_loop();
+void LoRa_send_file(const char *path, uint8_t length = 250U);
+void XSTRATO_GS_loop();
+void XSTRATO_R2H_loop();
+bool capture_img_and_save_in_SD(framesize_t framesize = FRAMESIZE_96X96, int jpeg_quality = 12);
+void LoRa_handle_cmd();
+void fill_BME_data(radio_packet_t* packet);
+void print_packet(radio_packet_t packet);
+
+bool startTransmission(framesize_t framesize = FRAMESIZE_96X96, int jpeg_quality = 12);
+void updateTransmission();
+
+// The fragment size is the size in bytes of each fragment of the file that will be sent using teleFile. 
+// The coding rate is the degree of redundancy used to encode the file.
+#define FRAGMENT_SIZE   100
+#define CODING_RATE     1.5
+
+// PRA and PRB are the preamble bytes used by Capsule to detect the start of a packet.
+#define PRA 0xFF
+#define PRB 0xFA
+
+void handlePacketDevice1(byte, byte [], unsigned);
+void handleFileTransfer1(byte dataIn[], unsigned dataSize);
+
+Capsule device1(PRA,PRB,handlePacketDevice1);
+TeleFile fileTransfer1(FRAGMENT_SIZE,CODING_RATE,handleFileTransfer1);
+
+byte *output;
+
+
+void setup() {
+    USBSerial.setTimeout(0); // really useful ?
+    // GPS
+    Serial1.begin(9600, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // GPS
+    // Serial1.begin(115200, 134217756U, GPS_UART1_RX_PIN,GPS_UART1_TX_PIN); // board Yohan
+    // Serial1.begin(4800, 134217756U, 8, 3); // 3 8 also
+    // Serial2.begin(9600, 134217756U, 46, 9);
+    SERIAL_.begin(9600);
+    pinMode(GREEN_LED_PIN, OUTPUT);
+
+    SERIAL_.println("XSTRATO is alive !");
+
+    led.begin();             // init NeoPixel
+    led.setBrightness(10);  // not so bright, range available: [0, 255]
+    led.fill(0x0000FF);
+    led.show();
+    digitalWrite(GREEN_LED_PIN, HIGH);
+
+    delay(200);
+    led.fill(0x00000);
+    led.show();
+    digitalWrite(GREEN_LED_PIN, LOW);
+
+    pinMode(BATTERY_MEASURE_PIN, INPUT);
+
+    SERIAL_.println("Led inited");
+
+    SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);  // SPI LoRa
+    LoRa.setPins(LORA_CS, LORA_RST, LORA_INT0);
+    LoRa.setSPI(SPI);
+    
+    if (!LoRa.begin(LORA_FREQ)) {
+        SERIAL_.println("Starting LoRa failed!");
+    }
+    LoRa.setSpreadingFactor(LORA_SF);
+    LoRa.setSignalBandwidth(LORA_BW);
+    //LoRa.setCodingRate4(LORA_CR);
+    //LoRa.setPreambleLength(LORA_PREAMBLE_LEN);
+    //LoRa.setSyncWord(LORA_SYNC_WORD);
+    //LoRa.enableCrc();
+    LoRa.setTxPower(LORA_POWER);
+    //LoRa.setOCP(LORA_CURRENT_LIMIT);
+
+    SD_MMC.setPins(SD_CLK, SD_CMD, SD_D0, SD_D1, SD_D2, SD_D3);
+
+    // BME Init
+    I2CBME.begin(BME_I2C_SDA, BME_I2C_SCL, (uint32_t)100000);
+    if (!bme.begin(0x76, &I2CBME)) {
+        USBSerial.println("Could not find a valid BME680 sensor, check wiring!");
+    } else {
+        // Set up oversampling and filter initialization
+        bme.setTemperatureOversampling(BME680_OS_8X);
+        bme.setHumidityOversampling(BME680_OS_2X);
+        bme.setPressureOversampling(BME680_OS_4X);
+        bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
+        bme.setGasHeater(320, 150);  // 320*C for 150 ms
+        USBSerial.println("BME inited :-)");
+    }
+
+    // 2nd XSTARTO work only until 20 MHz ? to checkif Xstrato1 can higher, -->No  20MHz max
+    if (!SD_MMC.begin("/sdcard", false, true, 20000)) {  // work at 100 kHz & 10 MHz mais pas bien a 20 et pas du tout à 40 MHz (default)
+        USBSerial.println("Card Mount Failed");
+        // return;
+    }
+    USBSerial.println("SD Card Mounted :-)");
+
+    // WiFi stuff
+    // USBSerial.println("Configuring access point...");
+    // WiFi.softAP(ssid, password);
+    // IPAddress myIP = WiFi.softAPIP();
+    // USBSerial.print("AP IP address: ");
+    // USBSerial.println(myIP);
+    // server.begin();
+    // USBSerial.println("Server started");
+
+    USBSerial.println("Setup() done");
+}
+
+void loop() {
+    static size_t last_time = 0;
+    // Sending the file 5s after startup and again every 45 seconds..
+    if ((millis() - fileTransfer1.getLastEndTime()) > 15000 and fileTransfer1.isTransmissionOver()) {
+        // Will encode the file.
+        bool r = startTransmission(FRAMESIZE_HD, 12);
+    } else if (!fileTransfer1.isTransmissionOver()) {
+        // Will send fragments one by one. There can be delay between two fragments if wanted.
+        // This function is blocking for the time of one LoRa packet transmission.
+        // However the code can be adapted to not be blocking for the time of one LoRa transmission
+        // What you have to do is wait enough before the next time you call updateTransmission()
+        // and to use LoRa.endPacket(true).
+        updateTransmission();
+    }
+    if (millis()-last_time > 5000) {
+        last_time = millis();
+        BME_loop();
+    }
+}
+
+void updateTransmission() {
+
+  const unsigned fragmentCutSize = fileTransfer1.getFragmentSize();
+  const unsigned numberOfCodedFragments = fileTransfer1.getNumberOfCodedFragments();
+  const unsigned numberOfUncodedFragments = fileTransfer1.getNumberOfUncodedFragments();
+
+  // We need to send each fragment one by one, because this will take some time, this is not integrated
+  // in the teleFile class, this is something the user has to do himself. But it's quite easy. Cut the fragment 
+  // to lenght and send it. 
+  unsigned currentPacketNumber = fileTransfer1.getLastPacketSent()+1;
+
+  if (currentPacketNumber<=numberOfCodedFragments) {
+    Serial.print("Packet n° "); Serial.print(currentPacketNumber); Serial.print("/"); Serial.println(numberOfCodedFragments);
+    unsigned fragmentLen = fragmentCutSize+4;
+    byte packetData[fragmentLen];
+    byte packetId = 0x00;
+
+    // The two first data bytes are the packet number (currentPacketNumber) as a 16 bit integer
+    packetData[0] = currentPacketNumber >> 8;
+    packetData[1] = currentPacketNumber & 0xFF;
+    // The two next data bytes are the total number of packets (numberOfCodedFragments) as a 16 bit integer
+    packetData[2] = numberOfUncodedFragments >> 8;
+    packetData[3] = numberOfUncodedFragments & 0xFF;
+
+    for (unsigned j = 0; j < fragmentCutSize; j++) {
+      packetData[j+4] = output[(currentPacketNumber-1)*fragmentCutSize+j];
+    }
+
+    digitalWrite(GREEN_LED_PIN, HIGH);
+    byte* packetToSend = device1.encode(packetId,packetData,fragmentLen);
+    LoRa.beginPacket();
+    LoRa.write(packetToSend, getCodedLen(fragmentLen));
+    LoRa.endPacket();
+
+    delete[] packetToSend;
+    fileTransfer1.setLastPacketSent(currentPacketNumber);
+    digitalWrite(GREEN_LED_PIN, LOW);
+  }
+  else {
+    Serial.println("Transmission over");
+    fileTransfer1.endTransmission();
+    delete[] output;
+  }
+}
+
+bool startTransmission(framesize_t framesize, int jpeg_quality) {
+  fileTransfer1.setTransmissionOver(false);
+
+  if (!setup_cam(framesize, jpeg_quality)) {
+    USBSerial.println("Camera init failed");
+    return false;
+  }
+  // capture a frame
+  camera_fb_t *fb = esp_camera_fb_get();
+  if (!fb) {
+    USBSerial.println("Error with frame buffer pointer");
+    return false;
+  }
+  // replace this with your own function
+  USBSerial.println("Size: " + String(fb->len) + " Bytes");
+  // display_image(fb->width, fb->height, fb->pixformat, fb->buf, fb->len);
+
+  const unsigned imageTrueSize = fb->len;
+
+  const unsigned imageBufferSize = fileTransfer1.computeUncodedSize(imageTrueSize);
+  Serial.print("Image size = ");
+  Serial.println(imageBufferSize);
+
+  const unsigned outputLen = fileTransfer1.computeCodedSize(imageTrueSize);
+  output = new byte[outputLen];
+
+  fileTransfer1.encode(fb->buf, imageTrueSize, output);
+
+  // return the frame buffer back to be reused
+  esp_camera_fb_return(fb);
+
+  esp_camera_deinit();
+  turn_off_cam();
+  return true;
+}
+
+void handlePacketDevice1(byte, byte[], unsigned) {
+  // Nothing required for the sender
+}
+
+void handleFileTransfer1(byte dataIn[], unsigned dataSize) {
+    // Nothing required for the sender
+}
+
+/////////////////////////////////////////////////
+
+uint32_t last_tx_time = 0; // used in cmd handler also
+void XSTRATO_R2H_loop() {
+    //////////////////////////////////////////
+    static uint8_t s = 0;
+    static uint32_t last_yohan_time = 0;
+    static uint32_t last_yohan_send_packet_time = 0;
+    static uint32_t last_time_img_tx = 0;
+    static bool new_packet = false;
+    static bool yohan_send_packet = false;
+    while (Serial1.available() && s < LORA_BUFFER_SIZE) {
+        yohan_buffer[s++] = Serial1.read();
+        last_yohan_time = millis();
+        new_packet = true;
+    }
+    if (millis() - last_yohan_time > LINE_TIMER && new_packet && xr2h_state == TELEMETRY_TX && millis()-last_time_img_tx > 5000) {
+        LoRa.beginPacket();
+        LoRa.write(yohan_buffer, s);
+        LoRa.endPacket(true);  // true = asynch
+        s = 0;
+        new_packet = false;
+        yohan_send_packet = true;
+        last_yohan_send_packet_time = millis();
+    }
+    //////////////////////////////////////////
+    //static uint32_t last_tx_time = 0; //general
+    if ((millis() - last_tx_time > xr2h_period_sec * 1000) || (xr2h_state == IMAGE_TX && millis() - last_tx_time > xr2h_img_period_msec)) {
+        // create empty packet
+        last_tx_time = millis();
+        static uint32_t packetNbr = 0;
+        radio_packet_t packet = {0};
+
+        packet.prefix = XSTRATO_prefix;
+        packet.packet_nbr = packetNbr++;
+
+        fill_BME_data(&packet);
+        packet.bat_level = analogRead(BATTERY_MEASURE_PIN);  // Coop Varta, 18.02.2023  v = 3100
+        packet.SD_Bytes_used = SD_MMC.usedBytes();
+        packet.rssi = LoRa.rssi();
+        packet.snr = LoRa.packetSnr();
+        packet.img_packet_nbr = 0;
+        packet.img_packet_nbr_tot = 0;
+
+        // bool r = capture_img_and_save_in_SD(FRAMESIZE_HD);
+        // bool r = capture_img_and_save_in_SD(FRAMESIZE_96X96);
+        
+        // LoRa_send_file("/texte.txt"); // send image
+        // if (millis() - last_time_img_tx > 300000 && yohan_send_packet && millis() - last_yohan_send_packet_time > 1000) {
+        if (millis() - last_time_img_tx > 300000 && yohan_send_packet && millis() - last_yohan_send_packet_time > 1000) {
+            yohan_send_packet = false;
+            xr2h_state = NEW_IMAGE_TX;
+        }
+
+        switch (xr2h_state) {
+            case NEW_IMAGE_TX: {
+                bool r = capture_img_and_save_in_SD(img_framesize);
+                USBSerial.println("Cam to SD result: " + String((r) ? "Success" : "Fail"));
+                size_t img_bytes = load_img_buffer(filename, img_buffer);  // TODO update name !
+                if (img_bytes) {
+                    _img_packet_nbr_tot = img_bytes / IMAGE_LENGTH_PER_PACKET + 1;
+                    _img_bytes_in_last_packet = img_bytes % IMAGE_LENGTH_PER_PACKET;
+                    USBSerial.println("_img_packet_nbr_tot = " + String(_img_packet_nbr_tot) + " byte_modulo: " + String(_img_bytes_in_last_packet));
+                    xr2h_state = IMAGE_TX;
+                } else {
+                    xr2h_state = TELEMETRY_TX;
+                    return;
+                }
+            }
+            // break;
+            case IMAGE_TX: {
+                _img_packet_nbr++;
+                packet.img_packet_nbr = _img_packet_nbr;
+                packet.img_packet_nbr_tot = _img_packet_nbr_tot;
+                packet.img_bytes = IMAGE_LENGTH_PER_PACKET;
+                memcpy(packet.image_data, img_buffer + (_img_packet_nbr-1) * IMAGE_LENGTH_PER_PACKET, IMAGE_LENGTH_PER_PACKET);
+                if (_img_packet_nbr == _img_packet_nbr_tot) {
+                    USBSerial.println("Complete img_tx");
+                    packet.img_bytes = _img_bytes_in_last_packet;
+                    xr2h_state = TELEMETRY_TX;
+                    _img_packet_nbr = 0;
+                    _img_packet_nbr_tot = 0;
+                    last_time_img_tx = millis();
+                }
+                break;
+            }
+            default:
+                break;
+        }
+
+        // LoRa send packet
+        LoRa.beginPacket();
+        size_t packetlength = (xr2h_state == TELEMETRY_TX) ? LoRa_telemetry_packet_size : LoRa_full_packet_size;
+        LoRa.write((uint8_t *)&packet, packetlength);
+        LoRa.endPacket(true);  // true = asynch
+    }
+    // TODO: fun Check if LoRa receive a cmdfilename
+    LoRa_handle_cmd();
+}
+
+bool capture_img_and_save_in_SD(framesize_t framesize, int jpeg_quality) {
+    static uint32_t pic_Nbr = 0;
+
+    if (!setup_cam(framesize, jpeg_quality)) {
+        USBSerial.println("Camera init failed");
+        return false;
+    }
+    // capture a frame
+    camera_fb_t* fb = esp_camera_fb_get();
+    if (!fb) {
+        USBSerial.println("Error with frame buffer pointer");
+        return false;
+    }
+    // replace this with your own function
+    USBSerial.println("Size: " + String(fb->len) + " Bytes");
+    // display_image(fb->width, fb->height, fb->pixformat, fb->buf, fb->len);
+
+    // Save picture in memory
+    // char filename[50];
+    sprintf(filename, "/img_%u.jpeg", pic_Nbr++);
+    save_image(SD_MMC, filename, fb->buf, fb->len);
+
+    // return the frame buffer back to be reused
+    esp_camera_fb_return(fb);
+    
+    esp_camera_deinit();
+    turn_off_cam();
+
+    return true;
+}
+
+void LoRa_handle_cmd() {
+    // set xr2h_period, sf, bw, etc
+    int packetSize = LoRa.parsePacket();
+    if (packetSize) {
+        // received a packet
+        SERIAL_.print("Received packet with RSSI: " + String(LoRa.packetRssi()) + " dBm");
+        // read packet
+        size_t size = 0;
+        static String memoryPacket = "";
+        while (LoRa.available() && size < LORA_BUFFER_SIZE) {
+            // char c = LoRa.read();
+            LoRa_rx_buf[size++] = LoRa.read();
+            // memoryPacket = memoryPacket + c;
+            // size++;
+        }
+        SERIAL_.println(" with size: " + String(size));
+
+        // for (uint8_t i = 0; i < size; i++) {
+            //int x = LoRa_rx_buf[i];
+            // Serial1.print(memoryPacket);
+            // USBSerial.print((char) x);
+            // USBSerial.println(memoryPacket);
+        // }
+        Serial1.write(LoRa_rx_buf, size);
+
+        // // Check if cmd Lionel
+        // if (LoRa_rx_buf[0] == 'p' && LoRa_rx_buf[1] == 'o' && LoRa_rx_buf[2] == 'n' && LoRa_rx_buf[3] == 'g') {
+        //     Serial.println("PING REQUEST received");
+        //     last_tx_time = 0;
+        // } else if (LoRa_rx_buf[0] == 'i' && LoRa_rx_buf[1] == 'm' && LoRa_rx_buf[2] == 'g') {
+        //     Serial.println("IMAGE SEND REQUEST received");
+        //     xr2h_state = NEW_IMAGE_TX;
+        // } else if (LoRa_rx_buf[0] == 'a' && LoRa_rx_buf[1] == 'b' && LoRa_rx_buf[2] == 'o') {
+        //     Serial.println("ABORT CMD received");
+        //     xr2h_state = TELEMETRY_TX;
+        // } else if (LoRa_rx_buf[0] == 's' && LoRa_rx_buf[1] == 'i' && LoRa_rx_buf[2] == 'z' && LoRa_rx_buf[3] == 'e') {
+        //     Serial.println("FRAME SIZE CMD received");
+        //     img_framesize = FRAMESIZE_96X96;
+        // // RF param update
+        // } else if (LoRa_rx_buf[0] == 's' && LoRa_rx_buf[1] == 'f') {
+        //     String sf(LoRa_rx_buf + 2, size - 2);
+        //     Serial.println("Spreading Factor updated: " + sf);
+        //     LoRa.setSpreadingFactor(sf.toInt());
+        // } else if (LoRa_rx_buf[0] == 'b' && LoRa_rx_buf[1] == 'w') {
+        //     String bw(LoRa_rx_buf + 2, size - 2);
+        //     int bwi = bw.toInt();
+        //     if (bwi >= 125 or bwi <= 500) {
+        //         Serial.println("Bandwidth updated: " + bw);
+        //         LoRa.setSignalBandwidth(bwi*1000);
+        //     }
+        // } else if (LoRa_rx_buf[0] == 'p' && LoRa_rx_buf[1] == 'e') {
+        //     String per(LoRa_rx_buf + 2, size - 2);
+        //     uint8_t per_i = per.toInt();
+        //     if (per_i < 120) {
+        //         Serial.println("Period updated: " + String(per_i) + " sec");
+        //         xr2h_period_sec = per_i;
+        //     }
+        // } else if (LoRa_rx_buf[0] == 'p' && LoRa_rx_buf[1] == 'e' && LoRa_rx_buf[2] == 'i' && LoRa_rx_buf[3] == 'm') {
+        //     String per(LoRa_rx_buf + 4, size - 4);
+        //     uint16_t per_i = per.toInt();
+        //     if (per_i > 1000 || per_i < 10000) {
+        //         Serial.println("Period img updated: " + String(per_i) + " msec");
+        //         xr2h_img_period_msec = per_i;
+        //     }
+        // }
+
+        // } else if (LoRa_rx_buf[0] == 'c' && LoRa_rx_buf[1] == 'r') {
+        //     String cr(LoRa_rx_buf + 2, size - 2);
+        //     Serial.println("Coding rate updated: " + cr);
+        //     LoRa.setCodingRate4(cr.toInt());
+        // }
+    }
+}
+
+void XSTRATO_GS_loop() {
+    // Yohan part
+    static uint8_t s = 0;
+    static uint32_t last_yohan_time = 0;
+    static bool new_packet = false;
+    static String memoryPacket = "";
+    while (Serial1.available() && s < LORA_BUFFER_SIZE) {
+        yohan_buffer[s++] = Serial1.read();
+        // char c = Serial1.read();
+        // memoryPacket = memoryPacket + c;
+        last_yohan_time = millis();
+        // s++;
+        new_packet = true;
+    }
+    if (millis() - last_yohan_time > LINE_TIMER && new_packet) {
+        LoRa.beginPacket();
+        // LoRa.print(memoryPacket);
+        LoRa.write(yohan_buffer, s);
+        LoRa.endPacket(true);  // true = asynch
+        s = 0;
+        new_packet = false;
+        USBSerial.println("YOOOOOHAN send cmd!!!!!");
+        // USBSerial.println(memoryPacket);
+        // memoryPacket = "";
+
+    }
+    // cmd handler
+    static uint8_t cmd_size = 0;
+    while (USBSerial.available() && cmd_size < LORA_BUFFER_SIZE) {
+        char c = USBSerial.read();
+        USBSerial.println("char: '" + String(c));
+        cmd_buffer[cmd_size++] = c;
+        if (c == 13) {
+            LoRa.beginPacket();
+            LoRa.write(cmd_buffer, cmd_size);
+            LoRa.endPacket(true);  // true = asynch
+            cmd_size = 0;
+            USBSerial.println("Lionel cmd sent!");
+        }
+    }
+
+    // XSTRATO part
+    static uint32_t pic_Nbr = 0;
+    // try to parse packet
+    int packetSize = LoRa.parsePacket();
+    if (packetSize) {
+        // received a packet
+        SERIAL_.print("Received packet with RSSI: " + String(LoRa.packetRssi()) + " dBm");
+        // read packet
+        size_t size = 0;
+        while (LoRa.available() && size < LORA_BUFFER_SIZE) {
+            LoRa_rx_buf[size++] = LoRa.read();
+        }
+        SERIAL_.println(" with size: " + String(size));
+
+        radio_packet_t rxpacket;
+        memcpy(&rxpacket, LoRa_rx_buf, size);
+
+        if (rxpacket.prefix == XSTRATO_prefix) {
+            if (rxpacket.img_packet_nbr != 0) {
+                // => it means image present in packet
+                memcpy(img_buffer+((rxpacket.img_packet_nbr-1)*IMAGE_LENGTH_PER_PACKET), rxpacket.image_data, rxpacket.img_bytes);
+                if (rxpacket.img_packet_nbr == rxpacket.img_packet_nbr_tot) { // image finished
+                    char filename[50];
+                    sprintf(filename, "/rx_img_%u.jpeg", pic_Nbr++);
+                    USBSerial.println("last packet rx, Saving image! rxsize: " + String((rxpacket.img_packet_nbr_tot-1)*IMAGE_LENGTH_PER_PACKET+rxpacket.img_bytes));
+                    save_image(SD_MMC, filename, img_buffer, (rxpacket.img_packet_nbr_tot-1)*IMAGE_LENGTH_PER_PACKET+rxpacket.img_bytes);
+                }
+            }
+            // save buf in SD memory
+            logAppendFile(SD_MMC, "/rx_log_file.txt", LoRa_rx_buf, size);
+
+            print_packet(rxpacket);
+        } else {
+            USBSerial.println("--------------->Received packet with wrong prefix!!!!!! (Yohan?)");
+            Serial1.write(LoRa_rx_buf, size);
+        }
+    }
+}
+
+void loop_debug() {
+    // static uint32_t t = 0;
+    // if (t - millis() > 500) {
+
+    // }
+    readFile(SD_MMC, "/texte.txt");
+    // test_SD_card();
+    static uint32_t v = 0;
+    for (int i = 0; i < 8; i++) {
+        led.fill(colors[i]);
+        led.show();
+
+        // digitalWrite(GREEN_LED_PIN, HIGH);
+        delay(500);
+        // digitalWrite(GREEN_LED_PIN, LOW);
+        delay(500);
+
+        uint16_t v = analogRead(BATTERY_MEASURE_PIN);  // Coop Varta, 18.02.2023  v = 3100
+        SERIAL_.println(v);
+    }
+    // server_loop();
+}
+
+void LoRa_send_file(const char *path, uint8_t length) {
+    // send packet
+    LoRa.beginPacket();
+    LoRa.print("hello: ");
+    getFile(SD_MMC, path, LoRa_tx_buf, length);
+    LoRa.write(LoRa_tx_buf, length);
+    LoRa.endPacket(true);
+    SERIAL_.print("Sending packet: ");
+}
+
+void fill_BME_data(radio_packet_t *packet) {
+    if (!bme.performReading()) {
+        USBSerial.println("Failed to perform reading :(");
+        return;
+    }
+    packet->bme_temp = bme.temperature;
+    packet->bme_press = bme.pressure / 100.0;
+    packet->bme_hum = bme.humidity;
+}
+
+void print_packet(radio_packet_t packet) {
+    // USBSerial.println("Printing received packet content: ");
+    USBSerial.printf("PacketNbr: %u", packet.packet_nbr);
+    float altitude = 44330.0 * (1.0 - pow(packet.bme_press / SEALEVELPRESSURE_HPA, 0.1903));
+    USBSerial.printf("\n\rBME: %u hPa | %.1f °C | %.1f %% | Alt %.1f", packet.bme_press, packet.bme_temp, packet.bme_hum, altitude);
+    USBSerial.printf("\n\rBattery: %u | SD: %u", packet.bat_level, packet.SD_Bytes_used);
+    USBSerial.printf("\n\rLoRa strato: SNR: %.1f  RSSI: %d ", packet.snr, packet.rssi);
+    USBSerial.printf("\n\rImage Tx:  RxPacketNbr/tot:  %u/%u   %uB", packet.img_packet_nbr, packet.img_packet_nbr_tot, packet.img_bytes);
+    USBSerial.println("\n\r#############################################");
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+// DEBUG 
+
+void BME_loop() {
+    if (!bme.performReading()) {
+        USBSerial.println("Failed to perform reading :(");
+        return;
+    }
+    USBSerial.print("Temperature = ");
+    USBSerial.print(bme.temperature);
+    USBSerial.println(" *C");
+
+    USBSerial.print("Pressure = ");
+    USBSerial.print(bme.pressure / 100.0);
+    USBSerial.println(" hPa");
+
+    USBSerial.print("Humidity = ");
+    USBSerial.print(bme.humidity);
+    USBSerial.println(" %");
+
+    USBSerial.print("Gas = ");
+    USBSerial.print(bme.gas_resistance / 1000.0);
+    USBSerial.println(" KOhms");
+
+    USBSerial.print("Approx. Altitude = ");
+    USBSerial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
+    USBSerial.println(" m");
+
+    USBSerial.println();
+}
+
+/*
+void server_loop() {
+    WiFiClient client = server.available();  // listen for incoming clients
+
+    if (client) {                          // if you get a client,
+        USBSerial.println("New Client.");  // print a message out the serial port
+        String currentLine = "";           // make a String to hold incoming data from the client
+        while (client.connected()) {       // loop while the client's connected
+            if (client.available()) {      // if there's bytes to read from the client,
+                char c = client.read();    // read a byte, then
+                USBSerial.write(c);        // print it out the serial monitor
+                if (c == '\n') {           // if the byte is a newline character
+
+                    // if the current line is blank, you got two newline characters in a row.
+                    // that's the end of the client HTTP request, so send a response:
+                    if (currentLine.length() == 0) {
+                        // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+                        // and a content-type so the client knows what's coming, then a blank line:
+                        client.println("HTTP/1.1 200 OK");
+                        client.println("Content-type:text/html");
+                        client.println();
+
+                        // the content of the HTTP response follows the header:
+                        client.print("Click <a href=\"/H\">here</a> to turn ON the LED.<br>");
+                        client.print("Click <a href=\"/L\">here</a> to turn OFF the LED.<br>");
+
+                        // The HTTP response ends with another blank line:
+                        client.println();
+                        // break out of the while loop:
+                        break;
+                    } else {  // if you got a newline, then clear currentLine:
+                        currentLine = "";
+                    }
+                } else if (c != '\r') {  // if you got anything else but a carriage return character,
+                    currentLine += c;    // add it to the end of the currentLine
+                }
+
+                // Check to see if the client request was "GET /H" or "GET /L":
+                if (currentLine.endsWith("GET /H")) {
+                    digitalWrite(GREEN_LED_PIN, HIGH);  // GET /H turns the LED on
+                }
+                if (currentLine.endsWith("GET /L")) {
+                    digitalWrite(GREEN_LED_PIN, LOW);  // GET /L turns the LED off
+                }
+            }
+        }
+        // close the connection:
+        client.stop();
+        USBSerial.println("Client Disconnected.");
+    }
+}*/

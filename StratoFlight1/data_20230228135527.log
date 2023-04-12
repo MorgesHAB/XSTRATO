@@ -1,0 +1,612 @@
+Log file, date: 2023-02-28 13:55:27.010199
+Received packet with RSSI: -98 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 106
+BME: 623 hPa | 22.6 °C | 4.0 % | Alt 3918.9
+Battery: 2317 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -99 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 107
+BME: 617 hPa | 22.5 °C | 3.9 % | Alt 3993.2
+Battery: 2311 | SD: 23724032
+LoRa strato: SNR: -4.5  RSSI: -99 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 108
+BME: 611 hPa | 22.4 °C | 3.7 % | Alt 4068.2
+Battery: 2309 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 110
+BME: 598 hPa | 22.1 °C | 3.1 % | Alt 4232.6
+Battery: 2320 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -93 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 111
+BME: 591 hPa | 21.9 °C | 3.1 % | Alt 4322.4
+Battery: 2301 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -98 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -100 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 112
+BME: 584 hPa | 21.8 °C | 3.0 % | Alt 4413.0
+Battery: 2311 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 113
+BME: 576 hPa | 21.6 °C | 2.9 % | Alt 4517.6
+Battery: 2287 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -100 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 1610616178
+BME: 13697593 hPa | 21.3 °C | 187072.0 % | Alt -226572.7
+Battery: 29719 | SD: 1981702366
+LoRa strato: SNR: 0.0  RSSI: 2146825591 
+Image Tx:  RxPacketNbr/tot:  204/107   176B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 115
+BME: 561 hPa | 21.1 °C | 2.8 % | Alt 4717.0
+Battery: 2315 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 117
+BME: 545 hPa | 20.6 °C | 2.2 % | Alt 4934.5
+Battery: 2122 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 118
+BME: 537 hPa | 20.3 °C | 2.0 % | Alt 5045.3
+Battery: 2311 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -98 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 119
+BME: 529 hPa | 20.0 °C | 1.6 % | Alt 5157.3
+Battery: 2313 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+YOOOOOHAN send cmd!!!!!
+Received packet with RSSI: -99 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 122
+BME: 510 hPa | 19.4 °C | 1.1 % | Alt 5429.0
+Battery: 2077 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  3/6   219B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+last packet rx, Saving image! rxsize: 1098
+Saving image: /rx_img_0.jpeg
+Image saved
+LOG success to: /rx_log_file.txt
+PacketNbr: 125
+BME: 499 hPa | 19.1 °C | 0.9 % | Alt 5590.1
+Battery: 2317 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  6/6   3B
+#############################################
+Received packet with RSSI: -100 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 126
+BME: 495 hPa | 19.0 °C | 0.7 % | Alt 5649.4
+Battery: 2296 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 94
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 128
+BME: 485 hPa | 18.8 °C | 0.6 % | Alt 5799.3
+Battery: 2343 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 132
+BME: 461 hPa | 18.1 °C | 0.0 % | Alt 6169.7
+Battery: 2127 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -91 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 133
+BME: 454 hPa | 17.9 °C | 0.0 % | Alt 6280.6
+Battery: 2328 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 134
+BME: 448 hPa | 17.7 °C | 0.0 % | Alt 6376.8
+Battery: 2311 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 135
+BME: 441 hPa | 17.5 °C | 0.0 % | Alt 6490.4
+Battery: 2298 | SD: 23724032
+LoRa strato: SNR: -6.5  RSSI: -99 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+YOOOOOHAN send cmd!!!!!
+YOOOOOHAN send cmd!!!!!
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 10748041
+BME: 14221328 hPa | 3184.0 °C | 138.0 % | Alt -228514.0
+Battery: 7134 | SD: 675741718
+LoRa strato: SNR: 0.0  RSSI: 1024065560 
+Image Tx:  RxPacketNbr/tot:  56/0   10B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 138
+BME: 422 hPa | 16.7 °C | 0.0 % | Alt 6806.2
+Battery: 2325 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 139
+BME: 416 hPa | 16.4 °C | 0.0 % | Alt 6908.3
+Battery: 2313 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -102 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 141
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 140
+BME: 410 hPa | 16.2 °C | 0.0 % | Alt 7011.6
+Battery: 2303 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -94 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 141
+BME: 405 hPa | 15.9 °C | 0.0 % | Alt 7098.7
+Battery: 2322 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  1/6   219B
+#############################################
+Received packet with RSSI: -100 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 143
+BME: 396 hPa | 15.5 °C | 0.0 % | Alt 7257.6
+Battery: 2329 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  3/6   219B
+#############################################
+Received packet with RSSI: -100 dBm with size: 37
+last packet rx, Saving image! rxsize: 1124
+Saving image: /rx_img_1.jpeg
+Image saved
+LOG success to: /rx_log_file.txt
+PacketNbr: 146
+BME: 388 hPa | 15.1 °C | 0.0 % | Alt 7401.3
+Battery: 2303 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -94 
+Image Tx:  RxPacketNbr/tot:  6/6   29B
+#############################################
+Received packet with RSSI: -99 dBm with size: 141
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 147
+BME: 385 hPa | 15.0 °C | 0.0 % | Alt 7455.8
+Battery: 2134 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 148
+BME: 382 hPa | 14.9 °C | 2208.0 % | Alt 7510.6
+Battery: 7457 | SD: 675741870
+LoRa strato: SNR: 0.0  RSSI: 1024065560 
+Image Tx:  RxPacketNbr/tot:  89/0   10B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 150
+BME: 374 hPa | 14.6 °C | 0.0 % | Alt 7658.6
+Battery: 2298 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -99 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 94
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 152
+BME: 366 hPa | 14.2 °C | 0.0 % | Alt 7809.2
+Battery: 2323 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -98 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -98 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 153
+BME: 361 hPa | 14.0 °C | 0.0 % | Alt 7904.7
+Battery: 2334 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 10682523
+BME: 2359567 hPa | 854700130304.0 °C | 138.0 % | Alt -149517.3
+Battery: 8422 | SD: 675741713
+LoRa strato: SNR: 0.0  RSSI: 1024065560 
+Image Tx:  RxPacketNbr/tot:  32/0   10B
+#############################################
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 262300
+BME: 6291803 hPa | 1062516969283606360645299077120.0 °C | 0.0 % | Alt -189293.6
+Battery: 26898 | SD: 23743494
+LoRa strato: SNR: 0.0  RSSI: -78512978 
+Image Tx:  RxPacketNbr/tot:  128/48   231B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 162
+BME: 322 hPa | 12.2 °C | 0.0 % | Alt 8688.6
+Battery: 2327 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  1/5   219B
+#############################################
+Received packet with RSSI: -98 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 165
+BME: 315 hPa | 11.9 °C | 0.0 % | Alt 8837.4
+Battery: 2299 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  4/5   219B
+#############################################
+Received packet with RSSI: -99 dBm with size: 73
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 167
+BME: 311 hPa | 11.8 °C | 0.0 % | Alt 8923.6
+Battery: 2333 | SD: 23724032
+LoRa strato: SNR: -13.8  RSSI: -3146082 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 10682536
+BME: 11272206 hPa | 3500851733725184.0 °C | 0.5 % | Alt -216710.1
+Battery: 8954 | SD: 675741912
+LoRa strato: SNR: 0.0  RSSI: 1024065560 
+Image Tx:  RxPacketNbr/tot:  121/0   10B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 172
+BME: 299 hPa | 11.5 °C | 0.0 % | Alt 9187.7
+Battery: 2333 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 174
+BME: 293 hPa | 11.3 °C | 0.0 % | Alt 9323.0
+Battery: 2284 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 175
+BME: 290 hPa | 11.3 °C | 0.0 % | Alt 9391.5
+Battery: 2328 | SD: 1634492512
+LoRa strato: SNR: -20656762445539311616.0  RSSI: 987932588 
+Image Tx:  RxPacketNbr/tot:  183/231   114B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 177
+BME: 284 hPa | 11.2 °C | 0.0 % | Alt 9530.2
+Battery: 2325 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -96 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 179
+BME: 278 hPa | 11.1 °C | 0.0 % | Alt 9671.4
+Battery: 2105 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 182
+BME: 269 hPa | 11.0 °C | 0.0 % | Alt 9887.7
+Battery: 2315 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  1/5   219B
+#############################################
+Received packet with RSSI: -99 dBm with size: 255
+LOG success to: /rx_log_file.txt
+PacketNbr: 184
+BME: 265 hPa | 10.9 °C | 0.0 % | Alt 9985.8
+Battery: 2291 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -94 
+Image Tx:  RxPacketNbr/tot:  3/5   219B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 186
+BME: 262 hPa | 10.9 °C | 0.0 % | Alt 10060.1
+Battery: 284 | SD: 2171207816
+LoRa strato: SNR: 1160153829328875548249782773560115200.0  RSSI: -1052768 
+Image Tx:  RxPacketNbr/tot:  216/2   142B
+#############################################
+Received packet with RSSI: -98 dBm with size: 141
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 94
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 141
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 191
+BME: 252 hPa | 10.7 °C | 0.0 % | Alt 10313.0
+Battery: 2333 | SD: 23724032
+LoRa strato: SNR: -13.5  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+YOOOOOHAN send cmd!!!!!
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+YOOOOOHAN send cmd!!!!!
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 193
+BME: 247 hPa | 10.6 °C | 0.0 % | Alt 10442.5
+Battery: 2299 | SD: 23724032
+LoRa strato: SNR: -13.8  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -100 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 10682562
+BME: 10616845 hPa | 3670918677691826700288.0 °C | 0.0 % | Alt -213751.5
+Battery: 10525 | SD: 675741735
+LoRa strato: SNR: 0.0  RSSI: 1024065560 
+Image Tx:  RxPacketNbr/tot:  225/0   10B
+#############################################
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 195
+BME: 241 hPa | 10.5 °C | 0.0 % | Alt 10600.7
+Battery: 2319 | SD: 23724032
+LoRa strato: SNR: -13.8  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 196
+BME: 238 hPa | 10.4 °C | 0.0 % | Alt 10681.0
+Battery: 2330 | SD: 23724032
+LoRa strato: SNR: -13.8  RSSI: -97 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 197
+BME: 235 hPa | 10.3 °C | 0.0 % | Alt 10762.1
+Battery: 2313 | SD: 23724032
+LoRa strato: SNR: -13.8  RSSI: -95 
+Image Tx:  RxPacketNbr/tot:  0/0   0B
+#############################################
+Received packet with RSSI: -100 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 141
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -100 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 37
+LOG success to: /rx_log_file.txt
+PacketNbr: 198
+BME: 233 hPa | 10.2 °C | 0.0 % | Alt 10816.7
+Battery: 2093 | SD: 23724032
+LoRa strato: SNR: 26.5  RSSI: -268435552 
+Image Tx:  RxPacketNbr/tot:  8/0   0B
+#############################################
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -97 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -97 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -99 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -97 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
+Received packet with RSSI: -98 dBm with size: 47
+--------------->Received packet with wrong prefix!!!!!! (Yohan?)
