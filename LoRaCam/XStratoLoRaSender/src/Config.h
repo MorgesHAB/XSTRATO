@@ -1,0 +1,2 @@
+#define SERIAL_TO_PC    USBSerial
+#define SERIAL_TO_PC_BAUD 115200
