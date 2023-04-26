@@ -3,6 +3,7 @@
 #include <TeleFile.h>
 #include <Capsule.h>
 #include <LoopbackStream.h>
+#include "../../../test.h"
 
 #define DEBUG true
 
