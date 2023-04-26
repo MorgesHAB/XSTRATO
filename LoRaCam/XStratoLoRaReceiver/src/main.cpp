@@ -206,5 +206,3 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
     break;
   }
 }
-
-
