@@ -1,0 +1,3 @@
+[submodule "XRF_interface"]
+	path = XRF_interface
+	url = https://github.com/MorgesHAB/XRF_interface.git
