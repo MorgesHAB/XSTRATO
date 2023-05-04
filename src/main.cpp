@@ -36,6 +36,7 @@ uint32_t colors[] = {
 void sendImagePacket();
 void sendPositionPacket();
 void startTransmission(framesize_t framesize = FRAMESIZE_96X96, int jpeg_quality = 12);
+void LoRaSendPacketLR(uint8_t *packetData, unsigned len);
 void updateTransmission();
 
 // The fragment size is the size in bytes of each fragment of the file that will be sent using teleFile. 
@@ -45,6 +46,9 @@ void updateTransmission();
 
 // The size of the packet that we send to the PC to display the pictur 
 #define FRAGMENT_SIZE_PC 200
+
+// These are the parameters that will be used to send stuff from ground to the balloon
+RFsettingsPacket LoRaSettings;
 
 void handlePacketLoRa(int packetSize);
 void handlePacketDevice1(byte, byte [], unsigned);
@@ -71,6 +75,10 @@ struct positionPacket {
 uint8_t *output;
 
 void setup() {
+    LoRaSettings.BW = 500e3;
+    LoRaSettings.CR = 5;
+    LoRaSettings.SF = 7;
+
     SERIAL_TO_PC.begin(SERIAL_TO_PC_BAUD);
     SERIAL_TO_PC.setTxTimeoutMs(0);
 
@@ -86,15 +94,24 @@ void setup() {
         SERIAL_TO_PC.println("Starting LoRa failed!");
       }
     }
-    LoRa.setSpreadingFactor(LORA_SF);
-    LoRa.setSignalBandwidth(LORA_BW);
-    LoRa.setCodingRate4(LORA_CR);
+
+    if (SENDER) {
+      LoRa.setSpreadingFactor(LORA_SF);
+      LoRa.setSignalBandwidth(LORA_BW);
+      LoRa.setCodingRate4(LORA_CR);
+    }
+    else {
+      LoRa.setCodingRate4(LoRaSettings.CR);
+      LoRa.setSpreadingFactor(LoRaSettings.SF);
+      LoRa.setSignalBandwidth(LoRaSettings.BW);
+    }
+
     //LoRa.setPreambleLength(LORA_PREAMBLE_LEN);
     //LoRa.setSyncWord(LORA_SYNC_WORD);
     //LoRa.enableCrc();
+
     LoRa.setTxPower(LORA_POWER);
     //LoRa.setOCP(LORA_CURRENT_LIMIT);
-
     LoRa.onReceive(handlePacketLoRa);
     LoRa.receive();
 
@@ -151,10 +168,6 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
   switch (packetId) {
     case CAPSULE_ID::IMAGE_LORA:
       {
-        if (DEBUG) {
-          SERIAL_TO_PC.print("Received fragment number: "); SERIAL_TO_PC.println(packetData[0] << 8 | packetData[1]); 
-        }
-
         TeleFileImgInfo imgInfo;
         memcpy(&imgInfo, packetData, TeleFileImgInfoSize);
         uint16_t fragmentNumberTemp = imgInfo.currentPacketNumber;
@@ -163,9 +176,10 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         if (fragmentNumberTemp<fragmentCounter) {
           fragmentCounter = 1;
         }
-
         fragmentCounter++;
-
+        if (DEBUG) {
+          SERIAL_TO_PC.print("Received fragment number: "); SERIAL_TO_PC.println(fragmentNumberTemp); 
+        }
         fileTransfer1.decode(packetData, len);
   
         Xstrato_img_info imgToPcInfo;
@@ -187,6 +201,7 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       }
     break;
     case CAPSULE_ID::LED:
+    {
       // Parse packetData in a uint32_t
       uint32_t ledColor = 0;
       for (unsigned i = 0; i < len; i++) {
@@ -196,6 +211,13 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       SERIAL_TO_PC.println("LED color: " + String(ledColor, HEX));
       led.fill(ledColor);
       led.show();
+    }
+    break;
+    case CAPSULE_ID::RF_PARAM:
+    {
+      memcpy(&LoRaSettings, packetData, RFsettingsPacket_size);
+      SERIAL_TO_PC.println("LoRa Settings: SF: " + String(LoRaSettings.SF) + " BW: " + String(LoRaSettings.BW) + " CR: " + String(LoRaSettings.CR));
+    }
     break;
   }
 }
@@ -211,9 +233,12 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
         byte* codedBuffer = new byte[codedSize];
         codedBuffer = device2.encode(packetId, dataIn, len);
 
-        LoRa.beginPacket();
-        LoRa.write(codedBuffer, codedSize);
-        LoRa.endPacket();
+        LoRaSendPacketLR(codedBuffer, codedSize);
+
+        //LoRa.beginPacket();
+        //LoRa.write(codedBuffer, codedSize);
+        //LoRa.endPacket();
+
         LoRa.receive();
 
         delete[] codedBuffer;
@@ -221,11 +246,16 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
     break;
     case CAPSULE_ID::RF_PARAM: {
       // get data from struct
-      RFsettingsPacket packet = {};
-      memcpy(&packet, dataIn, RFsettingsPacket_size);
-      LoRa.setSpreadingFactor(packet.SF);
-      LoRa.setSignalBandwidth(packet.BW);
-      LoRa.setCodingRate4(packet.CR);
+      memcpy(&LoRaSettings, dataIn, RFsettingsPacket_size);
+
+      size_t codedSize = device2.getCodedLen(len);
+      byte* codedBuffer = new byte[codedSize];
+      codedBuffer = device2.encode(packetId, dataIn, len);
+
+      LoRaSendPacketLR(codedBuffer, codedSize);
+
+      LoRa.receive();
+      delete[] codedBuffer;
     }
     break;
     default:
@@ -385,9 +415,12 @@ void updateTransmission() {
     digitalWrite(GREEN_LED_PIN, HIGH);
     {
       byte* packetToSend = device1.encode(CAPSULE_ID::IMAGE_LORA,packetData,fragmentLen);
-      LoRa.beginPacket();
-      LoRa.write(packetToSend, device1.getCodedLen(fragmentLen));
-      LoRa.endPacket();
+
+      LoRaSendPacketLR(packetToSend, device1.getCodedLen(fragmentLen));
+      
+      //LoRa.beginPacket();
+      //LoRa.write(packetToSend, device1.getCodedLen(fragmentLen));
+      //LoRa.endPacket();
       LoRa.receive();
 
       delete[] packetToSend;
@@ -419,12 +452,45 @@ void sendPositionPacket() {
     position.alt = gps.altitude.meters();
     memcpy(packetData, &position, sizeof(position));
     packetToSend = device1.encode(CAPSULE_ID::TELEMETRY, packetData, sizeof(position));
-    LoRa.beginPacket();
-    LoRa.write(packetToSend, device1.getCodedLen(12));
-    LoRa.endPacket();
+    
+    LoRaSendPacketLR(packetToSend, device1.getCodedLen(12));
+    
+    //LoRa.beginPacket();
+    //LoRa.write(packetToSend, device1.getCodedLen(12));
+    //LoRa.endPacket();
+
     LoRa.receive();
     delete[] packetData;
     delete[] packetToSend;
+  }
+}
+
+void LoRaSendPacketLR(uint8_t *packetData, unsigned len) {
+  if (SENDER) {
+    LoRa.setCodingRate4(LoRaSettings.CR);
+    LoRa.setSpreadingFactor(LoRaSettings.SF);
+    LoRa.setSignalBandwidth(LoRaSettings.BW);
+
+    LoRa.beginPacket();
+    LoRa.write(packetData, len);
+    LoRa.endPacket();
+
+    LoRa.setCodingRate4(LORA_CR);
+    LoRa.setSpreadingFactor(LORA_SF);
+    LoRa.setSignalBandwidth(LORA_BW);
+  }
+  else {
+    LoRa.setCodingRate4(LORA_CR);
+    LoRa.setSpreadingFactor(LORA_SF);
+    LoRa.setSignalBandwidth(LORA_BW);
+    
+    LoRa.beginPacket();
+    LoRa.write(packetData, len);
+    LoRa.endPacket();
+
+    LoRa.setCodingRate4(LoRaSettings.CR);
+    LoRa.setSpreadingFactor(LoRaSettings.SF);
+    LoRa.setSignalBandwidth(LoRaSettings.BW);
   }
 }
 

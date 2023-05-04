@@ -1,4 +1,5 @@
 #define DEBUG false
+#define SENDER false
 
 #define SERIAL_TO_PC    USBSerial
 #define SERIAL_TO_PC_BAUD 115200
@@ -12,9 +13,9 @@
 
 #define LORA_FREQ   868.0E6
 #define LORA_POWER  2
-#define LORA_BW     500.0e3
-#define LORA_SF     7
-#define LORA_CR     5
+#define LORA_BW     125.0e3
+#define LORA_SF     12
+#define LORA_CR     8
 #define LORA_PREAMBLE_LEN 8
 #define LORA_SYNC_WORD    0x12
 #define LORA_CRC          true
@@ -31,9 +32,14 @@
 #define NEOPIXEL_PIN            21
 #define GREEN_LED_PIN           14
 
-// GPS 
-#define SEND_POSITION_PACKET  false 
-#define SEND_IMAGE_PACKET     false  
+// GPS
+#if SENDER == true
+#define SEND_POSITION_PACKET  true
+#define SEND_IMAGE_PACKET     true 
+#else 
+#define SEND_POSITION_PACKET  false
+#define SEND_IMAGE_PACKET     false
+#endif
 
 // Rate of position packet transmission (in Hz), 1/30 = once every 30 seconds
 #define POSITION_PACKET_RATE   1.0/10.0
