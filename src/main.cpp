@@ -218,9 +218,11 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
     break;
     case CAPSULE_ID::RF_PARAM: {
       // get data from struct
-      LoRa.setSpreadingFactor(7);
-      LoRa.setSignalBandwidth(250E3);
-      LoRa.setCodingRate4(5);
+      RFsettingsPacket packet = {};
+      memcpy(&packet, dataIn, RFsettingsPacket_size);
+      LoRa.setSpreadingFactor(packet.SF);
+      LoRa.setSignalBandwidth(packet.BW);
+      LoRa.setCodingRate4(packet.CR);
     }
     break;
     default:
