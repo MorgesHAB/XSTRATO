@@ -60,12 +60,6 @@ TinyGPSPlus gps;
 TinyGPSCustom fixType(gps, "GNGSA", 2);
 unsigned char serial2bufferRead[1000];
 
-struct positionPacket {
-  float_t lat;
-  float_t lon;
-  float_t alt;
-};
-
 uint8_t *output;
 
 void setup() {
@@ -100,6 +94,7 @@ void setup() {
         SERIAL_TO_PC.println("Starting LoRa failed!");
       }
     }
+
 
     if (SENDER) {
       LoRa.setSpreadingFactor(LORA_SF);
@@ -205,6 +200,14 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
     case CAPSULE_ID::TELEMETRY:
       if (DEBUG) {
         SERIAL_TO_PC.println("Received Telemetry Packet ");
+      }
+      {
+      size_t codedSize = device1.getCodedLen(len);
+      byte* codedBuffer = new byte[codedSize];
+      codedBuffer = device1.encode(packetId, packetData, len);
+
+      SERIAL_TO_PC.write(codedBuffer, codedSize);
+      delete[] codedBuffer;
       }
     break;
     case CAPSULE_ID::LED:
@@ -503,7 +506,7 @@ void sendPositionPacket() {
     uint8_t *packetToSend;
     packetData = new uint8_t[12];
     packetToSend = new uint8_t[device1.getCodedLen(12)];
-    positionPacket position;
+    PositionPacket position;
     position.lat = gps.location.lat();
     position.lon = gps.location.lng();
     position.alt = gps.altitude.meters();
