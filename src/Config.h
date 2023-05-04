@@ -1,4 +1,4 @@
-#define DEBUG true
+#define DEBUG false
 
 #define SERIAL_TO_PC    USBSerial
 #define SERIAL_TO_PC_BAUD 115200
@@ -32,8 +32,8 @@
 #define GREEN_LED_PIN           14
 
 // GPS 
-#define SEND_POSITION_PACKET  true 
-#define SEND_IMAGE_PACKET     true  
+#define SEND_POSITION_PACKET  false 
+#define SEND_IMAGE_PACKET     false  
 
 // Rate of position packet transmission (in Hz), 1/30 = once every 30 seconds
 #define POSITION_PACKET_RATE   1.0/10.0

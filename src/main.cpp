@@ -110,8 +110,10 @@ void setup() {
     //  SERIAL_TO_PC.println("SD Card Mounted..");
     //}
 
-  GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
-  gpsSetup(57600, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
+  if (SEND_POSITION_PACKET) {
+    GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
+    gpsSetup(57600, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
+  }
 }
 
 void loop() {
@@ -123,8 +125,10 @@ void loop() {
     device2.decode(SERIAL_TO_PC.read());
   } 
 
-  while (GPS_PORT.available()) { 
-    gps.encode(GPS_PORT.read()); 
+  if (SEND_POSITION_PACKET) {
+    while (GPS_PORT.available()) { 
+      gps.encode(GPS_PORT.read()); 
+    }
   }
 
   if (SEND_IMAGE_PACKET) {
