@@ -5,6 +5,9 @@
 #include <LoopbackStream.h>
 #include "../../../test.h"
 
+// #define TX
+// #define RX
+
 #define DEBUG true
 
 #define SERIAL_TO_PC      USBSerial
@@ -35,6 +38,7 @@
 #define IMAGE_END       0x64
 #define TRANSMISSION_DATA 0x12
 #define LED_ID          0x99
+#define RF_PARAM_ID     0x91
 
 // The fragment size is the size in bytes of each fragment of the file that will be sent using teleFile. 
 // The coding rate is the degree of redundancy used to encode the file.
@@ -201,6 +205,13 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
 
         delete[] codedBuffer;
       }
+    break;
+    case RF_PARAM_ID: {
+      // get data from struct
+      LoRa.setSpreadingFactor(7);
+      LoRa.setSignalBandwidth(250E3);
+      LoRa.setCodingRate4(5);
+    }
     break;
     default:
     break;
