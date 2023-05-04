@@ -154,7 +154,10 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         if (DEBUG) {
           SERIAL_TO_PC.print("Received fragment number: "); SERIAL_TO_PC.println(packetData[0] << 8 | packetData[1]); 
         }
-        uint16_t fragmentNumberTemp = packetData[0] << 8 | packetData[1];
+
+        TeleFileImgInfo imgInfo;
+        memcpy(&imgInfo, packetData, TeleFileImgInfoSize);
+        uint16_t fragmentNumberTemp = imgInfo.currentPacketNumber;
         static uint16_t fragmentCounter = 0;
 
         if (fragmentNumberTemp<fragmentCounter) {
@@ -164,16 +167,16 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         fragmentCounter++;
 
         fileTransfer1.decode(packetData, len);
-        uint8_t *packetData = new uint8_t[4];
-        uint8_t len = 4;
-        
-        packetData[0] = fragmentCounter & 0xFF;
-        packetData[1] = fragmentCounter >> 8;
-        packetData[2] = packetData[3];
-        packetData[3] = packetData[2];
+  
+        Xstrato_img_info imgToPcInfo;
+        imgToPcInfo.nbr_rx_packet = fragmentCounter;
+        imgToPcInfo.nbr_tot_packet = imgInfo.numberOfUncodedFragments;
 
-        uint8_t* packetToSend = device1.encode(CAPSULE_ID::IMAGE_DATA,packetData,len);
-        SERIAL_TO_PC.write(packetToSend,device1.getCodedLen(len));
+        uint8_t *packetData = new uint8_t[Xstrato_img_info_size];
+        memcpy(packetData, &imgToPcInfo, Xstrato_img_info_size);
+        
+        uint8_t* packetToSend = device1.encode(CAPSULE_ID::IMAGE_DATA,packetData,Xstrato_img_info_size);
+        SERIAL_TO_PC.write(packetToSend,device1.getCodedLen(Xstrato_img_info_size));
         delete[] packetToSend;
         delete[] packetData;
       }
@@ -367,11 +370,11 @@ void updateTransmission() {
     unsigned fragmentLen = fragmentCutSize+4;
     byte packetData[fragmentLen];
 
-    packetData[0] = currentPacketNumber >> 8;
-    packetData[1] = currentPacketNumber & 0xFF;
-    // The two next data bytes are the total number of packets (numberOfCodedFragments) as a 16 bit integer
-    packetData[2] = numberOfUncodedFragments >> 8;
-    packetData[3] = numberOfUncodedFragments & 0xFF;
+    TeleFileImgInfo imgInfo;
+    imgInfo.currentPacketNumber = currentPacketNumber;
+    imgInfo.numberOfUncodedFragments = numberOfUncodedFragments;
+
+    memcpy(packetData, &imgInfo, TeleFileImgInfoSize);
 
     for (unsigned j = 0; j < fragmentCutSize; j++) {
       packetData[j+4] = output[(currentPacketNumber-1)*fragmentCutSize+j];
@@ -400,7 +403,7 @@ void updateTransmission() {
 }
 
 void sendPositionPacket() {
-static unsigned long lastPositionSent = 0;
+  static unsigned long lastPositionSent = 0;
   if (millis()-lastPositionSent > (1000.0/POSITION_PACKET_RATE) and gps.location.isUpdated()) {
     lastPositionSent = millis();
     // Send LoRa Packet using capsule 
