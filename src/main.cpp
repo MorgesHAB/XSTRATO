@@ -35,20 +35,14 @@ uint32_t colors[] = {
 
 void sendImagePacket();
 void sendPositionPacket();
-void startTransmission(framesize_t framesize = FRAMESIZE_96X96, int jpeg_quality = 12);
+void startTransmission();
 void LoRaSendPacketLR(uint8_t *packetData, unsigned len);
 void updateTransmission();
 
-// The fragment size is the size in bytes of each fragment of the file that will be sent using teleFile. 
-// The coding rate is the degree of redundancy used to encode the file.
-#define FRAGMENT_SIZE   100
-#define CODING_RATE     1.5
-
-// The size of the packet that we send to the PC to display the pictur 
-#define FRAGMENT_SIZE_PC 200
-
 // These are the parameters that will be used to send stuff from ground to the balloon
 RFsettingsPacket LoRaSettings;
+CameraSettingsPacket CameraSettings;
+CameraSettingsPacket CameraSettingsDefault;
 
 void handlePacketLoRa(int packetSize);
 void handlePacketDevice1(byte, byte [], unsigned);
@@ -75,9 +69,21 @@ struct positionPacket {
 uint8_t *output;
 
 void setup() {
-    LoRaSettings.BW = 500e3;
-    LoRaSettings.CR = 5;
-    LoRaSettings.SF = 7;
+    LoRaSettings.BW = LORA_LR_BW_DEFAULT;
+    LoRaSettings.CR = LORA_LR_CR_DEFAULT;
+    LoRaSettings.SF = LORA_LR_SF_DEFAULT;
+
+    CameraSettingsDefault.framesize = CAM_FRAMESIZE_DEFAULT;
+    CameraSettingsDefault.quality = CAM_QUALITY_DEFAULT;
+    CameraSettingsDefault.whiteBalanceEnable = CAM_WB_DEFAULT;
+    CameraSettingsDefault.awbGainEnable = CAM_AWB_GAIN_DEFAULT;
+    CameraSettingsDefault.wbMode = CAM_WB_MODE_DEFAULT;
+    CameraSettingsDefault.exposureEnable = CAM_EXPOSURE_DEFAULT;
+    CameraSettingsDefault.exposureValue = CAM_EXPOSURE_VALUE_DEFAULT;
+    CameraSettingsDefault.aec2Enable = CAM_AEC2_DEFAULT;
+    CameraSettingsDefault.rawGmaEnable = CAM_RAW_GMA_DEFAULT;
+
+    CameraSettings = CameraSettingsDefault;
 
     SERIAL_TO_PC.begin(SERIAL_TO_PC_BAUD);
     SERIAL_TO_PC.setTxTimeoutMs(0);
@@ -163,6 +169,7 @@ void handlePacketLoRa(int packetSize) {
   }
 }
 
+
 void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
   // Nothing required for the sender
   switch (packetId) {
@@ -208,7 +215,9 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         ledColor = ledColor << 8;
         ledColor = ledColor | packetData[i];
       }
-      SERIAL_TO_PC.println("LED color: " + String(ledColor, HEX));
+      if (DEBUG) {
+        SERIAL_TO_PC.println("LED color: " + String(ledColor, HEX));
+      }
       led.fill(ledColor);
       led.show();
     }
@@ -216,7 +225,28 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
     case CAPSULE_ID::RF_PARAM:
     {
       memcpy(&LoRaSettings, packetData, RFsettingsPacket_size);
-      SERIAL_TO_PC.println("LoRa Settings: SF: " + String(LoRaSettings.SF) + " BW: " + String(LoRaSettings.BW) + " CR: " + String(LoRaSettings.CR));
+      if (DEBUG) {
+        SERIAL_TO_PC.println("LoRa Settings: SF: " + String(LoRaSettings.SF) + " BW: " + String(LoRaSettings.BW) + " CR: " + String(LoRaSettings.CR));
+      }
+    }
+    break;
+    case CAPSULE_ID::CAM_PARAM:
+    {
+      memcpy(&CameraSettings, packetData, CameraSettingsPacketSize);
+      if (DEBUG) {
+        String toPrint = "";
+        toPrint += "Camera Settings: ";
+        toPrint += "Frame Size: " + String(CameraSettings.framesize) + " ";
+        toPrint += "Quality: " + String(CameraSettings.quality) + " ";
+        toPrint += "White Balance Enable: " + String(CameraSettings.whiteBalanceEnable) + " ";
+        toPrint += "AWB Gain Enable: " + String(CameraSettings.awbGainEnable) + " ";
+        toPrint += "WB Mode: " + String(CameraSettings.wbMode) + " ";
+        toPrint += "Exposure Enable: " + String(CameraSettings.exposureEnable) + " ";
+        toPrint += "Exposure Value: " + String(CameraSettings.exposureValue) + " ";
+        toPrint += "AEC2 Enable: " + String(CameraSettings.aec2Enable) + " ";
+        toPrint += "Raw Gma Enable: " + String(CameraSettings.rawGmaEnable) + " ";
+        SERIAL_TO_PC.println(toPrint);
+      }
     }
     break;
   }
@@ -244,9 +274,25 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
         delete[] codedBuffer;
       }
     break;
-    case CAPSULE_ID::RF_PARAM: {
+    case CAPSULE_ID::RF_PARAM: 
+    {
       // get data from struct
       memcpy(&LoRaSettings, dataIn, RFsettingsPacket_size);
+
+      size_t codedSize = device2.getCodedLen(len);
+      byte* codedBuffer = new byte[codedSize];
+      codedBuffer = device2.encode(packetId, dataIn, len);
+
+      LoRaSendPacketLR(codedBuffer, codedSize);
+
+      LoRa.receive();
+      delete[] codedBuffer;
+    }
+    break;
+    case CAPSULE_ID::CAM_PARAM: 
+    {
+      // get data from struct
+      memcpy(&CameraSettings, dataIn, CameraSettingsPacketSize);
 
       size_t codedSize = device2.getCodedLen(len);
       byte* codedBuffer = new byte[codedSize];
@@ -313,7 +359,7 @@ void sendImagePacket() {
     if ((millis() - fileTransfer1.getLastEndTime()) > 5000 and fileTransfer1.isTransmissionOver()) {
         // Will encode the file.
         // startTransmission(FRAMESIZE_HD, 12);
-        startTransmission(FRAMESIZE_SVGA, 20);
+        startTransmission();
     } else if (!fileTransfer1.isTransmissionOver()) {
         // Will send fragments one by one. There can be delay between two fragments if wanted.
         // This function is blocking for the time of one LoRa packet transmission.
@@ -324,11 +370,11 @@ void sendImagePacket() {
     }
 }
 
-void startTransmission(framesize_t frameSize, int jpegQuality) {
+void startTransmission() {
 
   fileTransfer1.setTransmissionOver(false);
 
-  if (!setupCam(frameSize, jpegQuality)) {
+  if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
     if (DEBUG) {
       SERIAL_TO_PC.println("Camera init failed");
     }
@@ -337,20 +383,20 @@ void startTransmission(framesize_t frameSize, int jpegQuality) {
 
   sensor_t* s = esp_camera_sensor_get();
 
-  s->set_framesize(s, FRAMESIZE_SVGA);  
-  s->set_quality(s, jpegQuality);
+  s->set_framesize(s, framesize_t(CameraSettings.framesize));  
+  s->set_quality(s, CameraSettings.quality);
   //s->set_brightness(s, 0);     // -2 to 2
   //s->set_contrast(s, 0);       // -2 to 2
   //s->set_saturation(s, 0);     // -2 to 2
-  s->set_whitebal(s, 1);       // 0 = disable , 1 = enable
-  s->set_awb_gain(s, 1);       // 0 = disable , 1 = enable
-  s->set_wb_mode(s, 1);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
+  s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
+  s->set_awb_gain(s, CameraSettings.awbGainEnable);       // 0 = disable , 1 = enable
+  s->set_wb_mode(s, CameraSettings.wbMode);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
   
-  s->set_exposure_ctrl(s, 1);  // 0 = disable , 1 = enable
-  s->set_aec_value(s, 300);    // 0 to 1200
-  s->set_aec2(s, 1);           // 0 = disable , 1 = enable
+  s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
+  s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
+  s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
   //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
-  s->set_raw_gma(s, 1);        // 0 = disable , 1 = enable
+  s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
   
   // capture a frame
   camera_fb_t *fb = esp_camera_fb_get();
@@ -369,20 +415,31 @@ void startTransmission(framesize_t frameSize, int jpegQuality) {
   const unsigned imageTrueSize = fb->len;
   const unsigned imageBufferSize = fileTransfer1.computeUncodedSize(imageTrueSize);
 
-  uint8_t *dataArray;
-  dataArray = new uint8_t[imageBufferSize];
+  if (imageTrueSize < MAX_IMAGE_SIZE) {
+    uint8_t *dataArray;
+    dataArray = new uint8_t[imageBufferSize];
 
-  memcpy(dataArray, fb->buf, imageTrueSize);
+    memcpy(dataArray, fb->buf, imageTrueSize);
 
-  esp_camera_fb_return(fb);
-  esp_camera_deinit();
-  turnOffCam();
+    esp_camera_fb_return(fb);
+    esp_camera_deinit();
+    turnOffCam();
 
-  const unsigned outputLen = fileTransfer1.computeCodedSize(imageTrueSize);
-  output = new byte[outputLen];
+    const unsigned outputLen = fileTransfer1.computeCodedSize(imageTrueSize);
+    output = new byte[outputLen];
 
-  fileTransfer1.encode(dataArray, imageTrueSize, output);
-  delete[] dataArray;
+    fileTransfer1.encode(dataArray, imageTrueSize, output);
+    delete[] dataArray;
+  }
+  else {
+    if (DEBUG) {
+      SERIAL_TO_PC.println("Image too big");
+    }
+    esp_camera_fb_return(fb);
+    esp_camera_deinit();
+    turnOffCam();
+    CameraSettings = CameraSettingsDefault;
+  }
 }
 
 void updateTransmission() {
