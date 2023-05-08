@@ -499,7 +499,7 @@ void updateTransmission() {
 
 void sendPositionPacket() {
   static unsigned long lastPositionSent = 0;
-  if (millis()-lastPositionSent > (1000.0/POSITION_PACKET_RATE) and gps.location.isUpdated()) {
+  if (millis()-lastPositionSent > 10000) { //and gps.location.isUpdated()) {
     lastPositionSent = millis();
     // Send LoRa Packet using capsule 
     uint8_t *packetData; 
