@@ -1,5 +1,5 @@
 #define DEBUG true
-#define SENDER true
+#define SENDER false
 
 #define SERIAL_TO_PC    USBSerial
 #define SERIAL_TO_PC_BAUD 115200
