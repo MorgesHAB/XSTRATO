@@ -35,6 +35,7 @@ uint32_t colors[] = {
 
 void sendImagePacket();
 void sendTelemetryPacket();
+void sendAck();
 void startTransmission();
 void LoRaSendPacketLR(uint8_t *packetData, unsigned len);
 void updateTransmission();
@@ -291,6 +292,18 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       }
 
       sendAck();
+    }
+    break;
+    case CAPSULE_ID::ACK:
+    {
+      uint8_t *packetData = new uint8_t[1];
+      byte* codedBuffer = new byte[device1.getCodedLen(1)];
+
+      codedBuffer = device1.encode(packetId, packetData, 1);
+
+      SERIAL_TO_PC.write(codedBuffer, device1.getCodedLen(1));
+      delete[] codedBuffer;
+      delete[] packetData;
     }
     break;
   }
