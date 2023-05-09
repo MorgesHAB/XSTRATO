@@ -1,4 +1,4 @@
-#define DEBUG false
+#define DEBUG true
 #define SENDER true
 
 #define SERIAL_TO_PC    USBSerial
@@ -51,7 +51,16 @@
 // The fragment size is the size in bytes of each fragment of the file that will be sent using teleFile. 
 // The coding rate is the degree of redundancy used to encode the file.
 #define FRAGMENT_SIZE   100
-#define CODING_RATE     1.2
+
+#define TRANSMISSION_MARGIN_RATE_DEFAULT     1.2
+#define TRANSMISSION_MARGIN_RATE_MIN         1.1
+#define TRANSMISSION_MARGIN_RATE_MAX         3
+
+#define TRANSMISSION_SILENCE_TIME_DEFAULT 15
+#define TRANSMISSION_SILENCE_TIME_MIN     10
+#define TRANSMISSION_SILENCE_TIME_MAX     100
+
+#define TRANSMISSION_ENABLE_DEFAULT  true
 
 // The size of the packet that we send to the PC to display the pictur 
 #define FRAGMENT_SIZE_PC 200

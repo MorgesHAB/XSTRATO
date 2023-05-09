@@ -43,6 +43,7 @@ void updateTransmission();
 RFsettingsPacket LoRaSettings;
 CameraSettingsPacket CameraSettings;
 CameraSettingsPacket CameraSettingsDefault;
+TransmissionSettingsPacket TransmissionSettings;
 
 void handlePacketLoRa(int packetSize);
 void handlePacketDevice1(byte, byte [], unsigned);
@@ -52,7 +53,7 @@ void handleFileTransfer1(byte dataIn[], unsigned dataSize);
 //SPIClass SDSPI(HSPI);
 CapsuleStatic device1(handlePacketDevice1);
 CapsuleStatic device2(handlePacketDevice2);
-TeleFile fileTransfer1(FRAGMENT_SIZE,CODING_RATE,handleFileTransfer1);
+TeleFile fileTransfer1(FRAGMENT_SIZE,TRANSMISSION_MARGIN_RATE_DEFAULT,handleFileTransfer1);
 Adafruit_NeoPixel led(1, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800); // 1 led
 LoopbackStream LoRaRxBuffer(1024);
 TinyGPSPlus gps;
@@ -78,6 +79,10 @@ void setup() {
     CameraSettingsDefault.rawGmaEnable = CAM_RAW_GMA_DEFAULT;
 
     CameraSettings = CameraSettingsDefault;
+
+    TransmissionSettings.transmissionEnable = TRANSMISSION_ENABLE_DEFAULT;
+    TransmissionSettings.silenceTime = TRANSMISSION_SILENCE_TIME_DEFAULT;
+    TransmissionSettings.marginRate = TRANSMISSION_MARGIN_RATE_DEFAULT;
 
     SERIAL_TO_PC.begin(SERIAL_TO_PC_BAUD);
     SERIAL_TO_PC.setTxTimeoutMs(0);
@@ -150,7 +155,9 @@ void loop() {
   }
 
   if (SEND_IMAGE_PACKET) {
-    sendImagePacket();
+    if (TransmissionSettings.transmissionEnable) {
+      sendImagePacket();
+    }
   }
    
   if (SEND_POSITION_PACKET) {
@@ -248,6 +255,19 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         toPrint += "Exposure Value: " + String(CameraSettings.exposureValue) + " ";
         toPrint += "AEC2 Enable: " + String(CameraSettings.aec2Enable) + " ";
         toPrint += "Raw Gma Enable: " + String(CameraSettings.rawGmaEnable) + " ";
+        SERIAL_TO_PC.println(toPrint);
+      }
+    }
+    break;
+    case CAPSULE_ID::TRANSMISSION_PARAM:
+    {
+      memcpy(&TransmissionSettings, packetData, TransmissionSettingsPacketSize);
+      if (DEBUG) {
+        String toPrint = "";
+        toPrint += "Transmission Settings: ";
+        toPrint += "Transmission Enable: " + String(TransmissionSettings.transmissionEnable) + " ";
+        toPrint += "Transmission Silence Time: " + String(TransmissionSettings.silenceTime) + " ";
+        toPrint += "Transmission Margin Rate:" + String(TransmissionSettings.marginRate);
         SERIAL_TO_PC.println(toPrint);
       }
     }
@@ -359,9 +379,10 @@ void handleFileTransfer1(byte dataIn[], unsigned dataSize) {
 
 void sendImagePacket() {
   // Sending a new picture if more than 15 seconds have passed since the last transmission.
-    if ((millis() - fileTransfer1.getLastEndTime()) > 5000 and fileTransfer1.isTransmissionOver()) {
+    if ((millis() - fileTransfer1.getLastEndTime()) > (TransmissionSettings.silenceTime*1000) and fileTransfer1.isTransmissionOver()) {
         // Will encode the file.
         // startTransmission(FRAMESIZE_HD, 12);
+        fileTransfer1.setMarginRate(TransmissionSettings.marginRate);
         startTransmission();
     } else if (!fileTransfer1.isTransmissionOver()) {
         // Will send fragments one by one. There can be delay between two fragments if wanted.
