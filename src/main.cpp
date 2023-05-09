@@ -241,6 +241,8 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       }
       led.fill(ledColor);
       led.show();
+
+      sendAck();
     }
     break;
     case CAPSULE_ID::RF_PARAM:
@@ -249,6 +251,8 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       if (DEBUG) {
         SERIAL_TO_PC.println("LoRa Settings: SF: " + String(LoRaSettings.SF) + " BW: " + String(LoRaSettings.BW) + " CR: " + String(LoRaSettings.CR));
       }
+
+      sendAck();
     }
     break;
     case CAPSULE_ID::CAM_PARAM:
@@ -268,6 +272,8 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         toPrint += "Raw Gma Enable: " + String(CameraSettings.rawGmaEnable) + " ";
         SERIAL_TO_PC.println(toPrint);
       }
+
+      sendAck();
     }
     break;
     case CAPSULE_ID::TRANSMISSION_PARAM:
@@ -283,6 +289,8 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         toPrint += "Transmission Margin Rate:" + String(TransmissionSettings.marginRate);
         SERIAL_TO_PC.println(toPrint);
       }
+
+      sendAck();
     }
     break;
   }
@@ -545,12 +553,24 @@ void updateTransmission() {
   }
 }
 
+void sendAck() {
+  uint8_t *packetData; 
+  uint8_t *packetToSend;
+  packetData = new uint8_t[1];
+  packetToSend = new uint8_t[device1.getCodedLen(1)];
+  packetToSend = device1.encode(CAPSULE_ID::ACK, packetData, 1);
+  LoRaSendPacketLR(packetToSend, device1.getCodedLen(1));
+  LoRa.receive();
+  delete[] packetData;
+  delete[] packetToSend;
+}
+
 void sendTelemetryPacket() {
   static unsigned long lastPositionSent = 0;
   if (millis()-lastPositionSent > 10000) { //and gps.location.isUpdated()) {
     lastPositionSent = millis();
 
-     TelemetryPacket telemetryToSend;
+    TelemetryPacket telemetryToSend;
 
     // Send LoRa Packet using capsule 
     uint8_t *packetData; 
