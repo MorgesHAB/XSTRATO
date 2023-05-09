@@ -34,7 +34,7 @@ uint32_t colors[] = {
 };
 
 void sendImagePacket();
-void sendPositionPacket();
+void sendTelemetryPacket();
 void startTransmission();
 void LoRaSendPacketLR(uint8_t *packetData, unsigned len);
 void updateTransmission();
@@ -161,7 +161,7 @@ void loop() {
   }
    
   if (SEND_POSITION_PACKET) {
-    sendPositionPacket();
+    sendTelemetryPacket();
   }
 }
 
@@ -193,6 +193,7 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
   
         Xstrato_img_info imgToPcInfo;
         imgToPcInfo.nbr_rx_packet = fragmentCounter;
+        imgToPcInfo.nbr_tx_packet = imgInfo.currentPacketNumber;
         imgToPcInfo.nbr_tot_packet = imgInfo.numberOfUncodedFragments;
 
         uint8_t *packetData = new uint8_t[Xstrato_img_info_size];
@@ -209,12 +210,22 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         SERIAL_TO_PC.println("Received Telemetry Packet ");
       }
       {
-      size_t codedSize = device1.getCodedLen(len);
+      SerialTelemetryPacket telemetryPacket;
+      memcpy(&telemetryPacket, packetData, len);
+
+      telemetryPacket.RssiGS = LoRa.packetRssi();
+      telemetryPacket.SnrGS = LoRa.packetSnr();
+
+      uint8_t *packetData = new uint8_t[SerialTelemetryPacketSize];
+      memcpy(packetData, &telemetryPacket, SerialTelemetryPacketSize);
+
+      size_t codedSize = device1.getCodedLen(SerialTelemetryPacketSize);
       byte* codedBuffer = new byte[codedSize];
-      codedBuffer = device1.encode(packetId, packetData, len);
+      codedBuffer = device1.encode(packetId, packetData, SerialTelemetryPacketSize);
 
       SERIAL_TO_PC.write(codedBuffer, codedSize);
       delete[] codedBuffer;
+      delete[] packetData;
       }
     break;
     case CAPSULE_ID::LED:
@@ -262,6 +273,8 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
     case CAPSULE_ID::TRANSMISSION_PARAM:
     {
       memcpy(&TransmissionSettings, packetData, TransmissionSettingsPacketSize);
+      TransmissionSettings.silenceTime = constrain(TransmissionSettings.silenceTime, TRANSMISSION_SILENCE_TIME_MIN, TRANSMISSION_SILENCE_TIME_MAX);
+      TransmissionSettings.marginRate = constrain(TransmissionSettings.marginRate, TRANSMISSION_MARGIN_RATE_MIN, TRANSMISSION_MARGIN_RATE_MAX);
       if (DEBUG) {
         String toPrint = "";
         toPrint += "Transmission Settings: ";
@@ -327,6 +340,20 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
       delete[] codedBuffer;
     }
     break;
+    case CAPSULE_ID::TRANSMISSION_PARAM: 
+    {
+      // get data from struct
+      memcpy(&TransmissionSettings, dataIn, TransmissionSettingsPacketSize);
+
+      size_t codedSize = device2.getCodedLen(len);
+      byte* codedBuffer = new byte[codedSize];
+      codedBuffer = device2.encode(packetId, dataIn, len);
+
+      LoRaSendPacketLR(codedBuffer, codedSize);
+
+      LoRa.receive();
+      delete[] codedBuffer;
+    }
     default:
     break;
   }
@@ -518,23 +545,32 @@ void updateTransmission() {
   }
 }
 
-void sendPositionPacket() {
+void sendTelemetryPacket() {
   static unsigned long lastPositionSent = 0;
   if (millis()-lastPositionSent > 10000) { //and gps.location.isUpdated()) {
     lastPositionSent = millis();
+
+     TelemetryPacket telemetryToSend;
+
     // Send LoRa Packet using capsule 
     uint8_t *packetData; 
     uint8_t *packetToSend;
-    packetData = new uint8_t[12];
-    packetToSend = new uint8_t[device1.getCodedLen(12)];
-    PositionPacket position;
-    position.lat = gps.location.lat();
-    position.lon = gps.location.lng();
-    position.alt = gps.altitude.meters();
-    memcpy(packetData, &position, sizeof(position));
-    packetToSend = device1.encode(CAPSULE_ID::TELEMETRY, packetData, sizeof(position));
+    packetData = new uint8_t[TelemetryPacketSize];
+    packetToSend = new uint8_t[device1.getCodedLen(TelemetryPacketSize)];
+
+
+    telemetryToSend.position.lat = gps.location.lat();
+    telemetryToSend.position.lon = gps.location.lng();
+    telemetryToSend.position.alt = gps.altitude.meters();
+
+    telemetryToSend.RssiBalloon = LoRa.packetRssi();
+    telemetryToSend.SnrBalloon = LoRa.packetSnr();
+
+    memcpy(packetData, &telemetryToSend, TelemetryPacketSize);
+
+    packetToSend = device1.encode(CAPSULE_ID::TELEMETRY, packetData, TelemetryPacketSize);
     
-    LoRaSendPacketLR(packetToSend, device1.getCodedLen(12));
+    LoRaSendPacketLR(packetToSend, device1.getCodedLen(TelemetryPacketSize));
     
     //LoRa.beginPacket();
     //LoRa.write(packetToSend, device1.getCodedLen(12));

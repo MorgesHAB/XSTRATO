@@ -1,5 +1,5 @@
-#define DEBUG true
-#define SENDER true
+#define DEBUG false
+#define SENDER false
 
 #define SERIAL_TO_PC    USBSerial
 #define SERIAL_TO_PC_BAUD 115200
@@ -14,7 +14,7 @@
 #define LORA_FREQ   868.0E6
 #define LORA_POWER  2
 #define LORA_BW     125.0e3
-#define LORA_SF     12
+#define LORA_SF     11
 #define LORA_CR     8
 #define LORA_PREAMBLE_LEN 8
 #define LORA_SYNC_WORD    0x12
