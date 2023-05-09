@@ -294,6 +294,11 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       sendAck();
     }
     break;
+    case CAPSULE_ID::PING: 
+    {
+      sendAck();
+    }
+    break;
     case CAPSULE_ID::ACK:
     {
       uint8_t *packetData = new uint8_t[1];
@@ -375,6 +380,18 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
       LoRa.receive();
       delete[] codedBuffer;
     }
+    break;
+    case CAPSULE_ID::PING: 
+    {
+      size_t codedSize = device2.getCodedLen(1);
+      byte* codedBuffer = new byte[codedSize];
+      codedBuffer = device2.encode(packetId, dataIn, len);
+
+      LoRaSendPacketLR(codedBuffer, codedSize);
+      LoRa.receive();
+      delete[] codedBuffer;
+    }
+    break;
     default:
     break;
   }
@@ -567,6 +584,7 @@ void updateTransmission() {
 }
 
 void sendAck() {
+  SERIAL_TO_PC.println("Sending ACK");
   uint8_t *packetData; 
   uint8_t *packetToSend;
   packetData = new uint8_t[1];
