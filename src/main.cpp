@@ -16,6 +16,7 @@
 #include "Sensor.h" //BME680
 #include "../XRF_interface/PacketDefinition.h"
 
+// SD card memory
 #include <SD_MMC.h> // with CLK, CMD; D0-3
 #include <LoopbackStream.h>
 
@@ -31,6 +32,21 @@ uint32_t colors[] = {
     0xCF067C,
     0xFF0800
 };
+
+void writeFile(fs::FS &fs, const char * path, const char * message){
+    USBSerial.printf("Writing file: %s\n", path);
+
+    File file = fs.open(path, FILE_WRITE);
+    if(!file){
+        USBSerial.println("Failed to open file for writing");
+        return;
+    }
+    if(file.print(message)){
+        USBSerial.println("File written");
+    } else {
+        USBSerial.println("Write failed");
+    }
+}
 
 void sendImagePacket();
 void saveImage(const uint8_t *imageBuffer, size_t length);
@@ -126,20 +142,15 @@ void setup() {
 
     SD_MMC.setPins(SD_CLK, SD_CMD, SD_D0, SD_D1, SD_D2, SD_D3);
 
-    // 20000 is the max operational speed ?
-    if (!SD_MMC.begin("/sdcard", false, true, 10000)) {  
-      if (DEBUG) {
-        SERIAL_TO_PC.println("Card Mount Failed..");
-      }
-    }
-    if (DEBUG) {
-      SERIAL_TO_PC.println("SD Card Mounted..");
+    if(!SD_MMC.begin()){
+        USBSerial.println("Card Mount Failed");
+        return;
     }
 
-  if (SEND_POSITION_PACKET) {
-    GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
-    gpsSetup(GPS_BAUDRATE, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
-  }
+    if (SEND_POSITION_PACKET) {
+      GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
+      gpsSetup(GPS_BAUDRATE, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
+    }
 }
 
 void loop() {
@@ -507,8 +518,32 @@ void startTransmission() {
   const unsigned imageTrueSize = fb->len;
   const unsigned imageBufferSize = fileTransfer1.computeUncodedSize(imageTrueSize);
 
-  save_image(SD_MMC, "/image.jpg", fb->buf, imageTrueSize);
+  //save_image(SD_MMC, "/image.jpg", fb->buf, imageTrueSize);
   //saveImage(fb->buf, imageTrueSize);
+
+  delay(2000);
+    uint8_t cardType = SD_MMC.cardType();
+
+    if(cardType == CARD_NONE){
+        USBSerial.println("No SD_MMC card attached");
+        return;
+    }
+
+    USBSerial.print("SD_MMC Card Type: ");
+    if(cardType == CARD_MMC){
+        USBSerial.println("MMC");
+    } else if(cardType == CARD_SD){
+        USBSerial.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        USBSerial.println("SDHC");
+    } else {
+        USBSerial.println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
+    USBSerial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
+
+  writeFile(SD_MMC, "/helloAAA.txt", "HelloAAA ");
 
   if (imageTrueSize < MAX_IMAGE_SIZE) {
     uint8_t *dataArray;

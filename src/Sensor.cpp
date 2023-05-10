@@ -6,12 +6,13 @@
 #include <Adafruit_BME680.h>
 
 Adafruit_BME680 bme;  // I2C
-TwoWire I2CBME = TwoWire(0);
+//TwoWire I2CBME = TwoWire(0);
 
 bool BME_setup() {
     // BME Init
-    I2CBME.begin(BME_I2C_SDA, BME_I2C_SCL, (uint32_t)100000);
-    if (!bme.begin(0x76, &I2CBME)) {
+    //I2CBME.begin(BME_I2C_SDA, BME_I2C_SCL, (uint32_t)100000);
+    Wire.begin(BME_I2C_SDA, BME_I2C_SCL);
+    if (!bme.begin(0x76)) { // }, &I2CBME)) {
         if (DEBUG) {
             SERIAL_TO_PC.println("Could not find a valid BME680 sensor, check wiring!");
         }
