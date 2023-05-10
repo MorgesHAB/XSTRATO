@@ -1,15 +1,15 @@
-#define DEBUG false
-#define SENDER false
+#define DEBUG true
+#define SENDER true
 
 #define SERIAL_TO_PC    USBSerial
 #define SERIAL_TO_PC_BAUD 115200
 
-//#define SD_CMD                  6
-//#define SD_CLK                  7
-//#define SD_D0                   15
-//#define SD_D1                   16
-//#define SD_D2                   4
-//#define SD_D3                   5
+#define SD_CMD                  6
+#define SD_CLK                  7
+#define SD_D0                   15
+#define SD_D1                   16
+#define SD_D2                   4
+#define SD_D3                   5
 
 #define LORA_FREQ   869.0E6
 #define LORA_POWER  2

@@ -15,8 +15,6 @@
 #include "GPS.h"
 #include "../XRF_interface/PacketDefinition.h"
 
-#include <FS.h>
-#include <SD.h>
 #include <SD_MMC.h> // with CLK, CMD; D0-3
 #include <LoopbackStream.h>
 
@@ -34,6 +32,8 @@ uint32_t colors[] = {
 };
 
 void sendImagePacket();
+void saveImage(const uint8_t *imageBuffer, size_t length);
+void save_image(fs::FS &fs, const char *path, const uint8_t *message, size_t length);
 void sendTelemetryPacket();
 void sendAck();
 void startTransmission();
@@ -51,7 +51,6 @@ void handlePacketDevice1(byte, byte [], unsigned);
 void handlePacketDevice2(byte, byte [], unsigned);
 void handleFileTransfer1(byte dataIn[], unsigned dataSize);
 
-//SPIClass SDSPI(HSPI);
 CapsuleStatic device1(handlePacketDevice1);
 CapsuleStatic device2(handlePacketDevice2);
 TeleFile fileTransfer1(FRAGMENT_SIZE,TRANSMISSION_MARGIN_RATE_DEFAULT,handleFileTransfer1);
@@ -101,7 +100,6 @@ void setup() {
       }
     }
 
-
     if (SENDER) {
       LoRa.setSpreadingFactor(LORA_SF);
       LoRa.setSignalBandwidth(LORA_BW);
@@ -122,21 +120,21 @@ void setup() {
     LoRa.onReceive(handlePacketLoRa);
     LoRa.receive();
 
-    //SD_MMC.setPins(SD_CLK, SD_CMD, SD_D0, SD_D1, SD_D2, SD_D3);
+    SD_MMC.setPins(SD_CLK, SD_CMD, SD_D0, SD_D1, SD_D2, SD_D3);
 
     // 20000 is the max operational speed ?
-    //if (!SD_MMC.begin("/sdcard", false, true, 20000)) {  
-    //  if (DEBUG) {
-    //    SERIAL_TO_PC.println("Card Mount Failed..");
-    //  }
-    //}
-    //if (DEBUG) {
-    //  SERIAL_TO_PC.println("SD Card Mounted..");
-    //}
+    if (!SD_MMC.begin("/sdcard", false, true, 10000)) {  
+      if (DEBUG) {
+        SERIAL_TO_PC.println("Card Mount Failed..");
+      }
+    }
+    if (DEBUG) {
+      SERIAL_TO_PC.println("SD Card Mounted..");
+    }
 
   if (SEND_POSITION_PACKET) {
     GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
-    gpsSetup(57600, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
+    gpsSetup(GPS_BAUDRATE, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
   }
 }
 
@@ -505,6 +503,9 @@ void startTransmission() {
   const unsigned imageTrueSize = fb->len;
   const unsigned imageBufferSize = fileTransfer1.computeUncodedSize(imageTrueSize);
 
+  save_image(SD_MMC, "/image.jpg", fb->buf, imageTrueSize);
+  //saveImage(fb->buf, imageTrueSize);
+
   if (imageTrueSize < MAX_IMAGE_SIZE) {
     uint8_t *dataArray;
     dataArray = new uint8_t[imageBufferSize];
@@ -530,6 +531,54 @@ void startTransmission() {
     turnOffCam();
     CameraSettings = CameraSettingsDefault;
   }
+}
+
+void save_image(fs::FS &fs, const char *path, const uint8_t *message, size_t length) {
+    USBSerial.println("Saving image: " + String(path));
+
+    File file = fs.open(path, FILE_WRITE);
+    if (!file) {
+        USBSerial.println("Failed to open file for saving image");
+        return;
+    }
+    if (file.write(message, length)) {
+        USBSerial.println("Image saved");
+    } else {
+        USBSerial.println("Write failed");
+    }
+    file.close();
+}
+
+void saveImage(const uint8_t *imageBuffer, size_t length) {
+  static unsigned fileNumber = 0;
+  File file; 
+
+  char *fileName;
+  fileName = new char[50];
+  
+  do {
+    fileNumber++;
+    sprintf(fileName, "/imageWritten%d.jpeg", fileNumber);
+    SERIAL_TO_PC.println("Saving image: " + String(fileName));
+    file = SD_MMC.open("/imageWritten.jpeg", FILE_WRITE);
+  } while (file); 
+
+  file = SD_MMC.open(fileName, FILE_WRITE);
+
+  if (DEBUG) { 
+    SERIAL_TO_PC.println("Saving image: " + String(fileName));
+  }
+
+  if (file) {
+    file.write(imageBuffer, length);
+    file.close();
+    Serial.println("File write successful!!!!");
+  }
+  else {
+    file.close();
+
+  }
+  delete[] fileName;
 }
 
 void updateTransmission() {
