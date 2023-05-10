@@ -13,6 +13,7 @@
 #include "Camera.h"
 #include "Config.h"
 #include "GPS.h"
+#include "Sensor.h" //BME680
 #include "../XRF_interface/PacketDefinition.h"
 
 #include <SD_MMC.h> // with CLK, CMD; D0-3
@@ -89,6 +90,8 @@ void setup() {
 
     pinMode(GREEN_LED_PIN, OUTPUT);
     led.begin();
+
+    BME_setup();
 
     SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS); 
     LoRa.setPins(LORA_CS, LORA_RST, LORA_INT0);
@@ -662,6 +665,8 @@ void sendTelemetryPacket() {
     telemetryToSend.position.lat = gps.location.lat();
     telemetryToSend.position.lon = gps.location.lng();
     telemetryToSend.position.alt = gps.altitude.meters();
+
+    fill_BME_data(&telemetryToSend.barometer);
 
     telemetryToSend.balloon.rssi = LoRa.packetRssi();
     telemetryToSend.balloon.snr = LoRa.packetSnr();
