@@ -610,7 +610,6 @@ void sendTelemetryPacket() {
     packetData = new uint8_t[TelemetryPacketSize];
     packetToSend = new uint8_t[device1.getCodedLen(TelemetryPacketSize)];
 
-
     telemetryToSend.position.lat = gps.location.lat();
     telemetryToSend.position.lon = gps.location.lng();
     telemetryToSend.position.alt = gps.altitude.meters();
