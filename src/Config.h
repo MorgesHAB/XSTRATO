@@ -11,7 +11,7 @@
 //#define SD_D2                   4
 //#define SD_D3                   5
 
-#define LORA_FREQ   868.0E6
+#define LORA_FREQ   869.0E6
 #define LORA_POWER  2
 #define LORA_BW     125.0e3
 #define LORA_SF     11

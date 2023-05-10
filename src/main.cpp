@@ -214,8 +214,9 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       SerialTelemetryPacket telemetryPacket;
       memcpy(&telemetryPacket, packetData, len);
 
-      telemetryPacket.RssiGS = LoRa.packetRssi();
-      telemetryPacket.SnrGS = LoRa.packetSnr();
+      telemetryPacket.ground.rssi = LoRa.packetRssi();
+      telemetryPacket.ground.snr = LoRa.packetSnr();
+      telemetryPacket.ground.frequencyError = LoRa.packetFrequencyError();
 
       uint8_t *packetData = new uint8_t[SerialTelemetryPacketSize];
       memcpy(packetData, &telemetryPacket, SerialTelemetryPacketSize);
@@ -614,8 +615,11 @@ void sendTelemetryPacket() {
     telemetryToSend.position.lon = gps.location.lng();
     telemetryToSend.position.alt = gps.altitude.meters();
 
-    telemetryToSend.RssiBalloon = LoRa.packetRssi();
-    telemetryToSend.SnrBalloon = LoRa.packetSnr();
+    telemetryToSend.balloon.rssi = LoRa.packetRssi();
+    telemetryToSend.balloon.snr = LoRa.packetSnr();
+    telemetryToSend.balloon.frequencyError = LoRa.packetFrequencyError();
+
+    telemetryToSend.packetTime = uint16_t(millis()/1000);
 
     memcpy(packetData, &telemetryToSend, TelemetryPacketSize);
 
