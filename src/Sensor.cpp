@@ -1,4 +1,5 @@
 #include "Sensor.h"
+#include "Config.h"
 
 #include <Wire.h>
 // #include <Adafruit_Sensor.h> // need to change sensor_t to sensor_tt (conflict with esp_cam sensor_t)
@@ -11,7 +12,9 @@ bool BME_setup() {
     // BME Init
     I2CBME.begin(BME_I2C_SDA, BME_I2C_SCL, (uint32_t)100000);
     if (!bme.begin(0x76, &I2CBME)) {
-        USBSerial.println("Could not find a valid BME680 sensor, check wiring!");
+        if (DEBUG) {
+            SERIAL_TO_PC.println("Could not find a valid BME680 sensor, check wiring!");
+        }
         return false;
     } else {
         // Set up oversampling and filter initialization
@@ -20,14 +23,18 @@ bool BME_setup() {
         bme.setPressureOversampling(BME680_OS_4X);
         bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
         bme.setGasHeater(320, 150);  // 320*C for 150 ms
-        USBSerial.println("BME inited :-)");
+        if (DEBUG) {
+            SERIAL_TO_PC.println("BME inited :-)");
+        }
         return true;
     }
 }
 
 bool fill_BME_data(BarometerPacket *packet) {
     if (!bme.performReading()) {
-        USBSerial.println("Failed to perform reading :(");
+        if (DEBUG) {
+            SERIAL_TO_PC.println("Failed to perform reading :(");
+        }
         return false;
     }
     packet->temperature = bme.temperature;
@@ -38,28 +45,28 @@ bool fill_BME_data(BarometerPacket *packet) {
 
 void print_debug() {
     if (!bme.performReading()) {
-        USBSerial.println("Failed to perform reading :(");
+        SERIAL_TO_PC.println("Failed to perform reading :(");
         return;
     }
-    USBSerial.print("Temperature = ");
-    USBSerial.print(bme.temperature);
-    USBSerial.println(" *C");
+    SERIAL_TO_PC.print("Temperature = ");
+    SERIAL_TO_PC.print(bme.temperature);
+    SERIAL_TO_PC.println(" *C");
 
-    USBSerial.print("Pressure = ");
-    USBSerial.print(bme.pressure / 100.0);
-    USBSerial.println(" hPa");
+    SERIAL_TO_PC.print("Pressure = ");
+    SERIAL_TO_PC.print(bme.pressure / 100.0);
+    SERIAL_TO_PC.println(" hPa");
 
-    USBSerial.print("Humidity = ");
-    USBSerial.print(bme.humidity);
-    USBSerial.println(" %");
+    SERIAL_TO_PC.print("Humidity = ");
+    SERIAL_TO_PC.print(bme.humidity);
+    SERIAL_TO_PC.println(" %");
 
-    USBSerial.print("Gas = ");
-    USBSerial.print(bme.gas_resistance / 1000.0);
-    USBSerial.println(" KOhms");
+    SERIAL_TO_PC.print("Gas = ");
+    SERIAL_TO_PC.print(bme.gas_resistance / 1000.0);
+    SERIAL_TO_PC.println(" KOhms");
 
-    USBSerial.print("Approx. Altitude = ");
-    USBSerial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-    USBSerial.println(" m");
+    SERIAL_TO_PC.print("Approx. Altitude = ");
+    SERIAL_TO_PC.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
+    SERIAL_TO_PC.println(" m");
 
-    USBSerial.println();
+    SERIAL_TO_PC.println();
 }

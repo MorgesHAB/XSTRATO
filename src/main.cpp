@@ -87,6 +87,7 @@ void setup() {
 
     SERIAL_TO_PC.begin(SERIAL_TO_PC_BAUD);
     SERIAL_TO_PC.setTxTimeoutMs(0);
+    delay(2000);
 
     pinMode(GREEN_LED_PIN, OUTPUT);
     led.begin();
