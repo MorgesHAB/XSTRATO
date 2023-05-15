@@ -20,6 +20,9 @@
 #include <SD_MMC.h> // with CLK, CMD; D0-3
 #include <LoopbackStream.h>
 
+#include "FS.h"
+#include "SD_MMC.h"
+
 char filename[50];
 
 uint32_t colors[] = {
@@ -31,17 +34,17 @@ uint32_t colors[] = {
     0xFF0000,
     0xCF067C,
     0xFF0800
-};
+}; 
 
-void writeFile(fs::FS &fs, const char * path, const char * message){
+void writeFile(fs::FS &fs, const char *path, const char *message) {
     USBSerial.printf("Writing file: %s\n", path);
 
     File file = fs.open(path, FILE_WRITE);
-    if(!file){
+    if (!file) {
         USBSerial.println("Failed to open file for writing");
         return;
     }
-    if(file.print(message)){
+    if (file.print(message)) {
         USBSerial.println("File written");
     } else {
         USBSerial.println("Write failed");
@@ -57,7 +60,7 @@ void startTransmission();
 void LoRaSendPacketLR(uint8_t *packetData, unsigned len);
 void updateTransmission();
 
-// These are the parameters that will be used to send stuff from ground to the balloon
+// // These are the parameters that will be used to send stuff from ground to the balloon
 RFsettingsPacket LoRaSettings;
 CameraSettingsPacket CameraSettings;
 CameraSettingsPacket CameraSettingsDefault;
@@ -78,7 +81,7 @@ TinyGPSPlus gps;
 TinyGPSCustom fixType(gps, "GNGSA", 2);
 unsigned char serial2bufferRead[1000];
 
-uint8_t *output;
+uint8_t *output; 
 
 void setup() {
     LoRaSettings.BW = LORA_LR_BW_DEFAULT;
@@ -99,11 +102,11 @@ void setup() {
 
     TransmissionSettings.transmissionEnable = TRANSMISSION_ENABLE_DEFAULT;
     TransmissionSettings.silenceTime = TRANSMISSION_SILENCE_TIME_DEFAULT;
-    TransmissionSettings.marginRate = TRANSMISSION_MARGIN_RATE_DEFAULT;
+    TransmissionSettings.marginRate = TRANSMISSION_MARGIN_RATE_DEFAULT; 
 
     SERIAL_TO_PC.begin(SERIAL_TO_PC_BAUD);
     SERIAL_TO_PC.setTxTimeoutMs(0);
-    delay(2000);
+    //delay(2000);
 
     pinMode(GREEN_LED_PIN, OUTPUT);
     led.begin();
@@ -138,7 +141,7 @@ void setup() {
     LoRa.setTxPower(LORA_POWER);
     //LoRa.setOCP(LORA_CURRENT_LIMIT);
     LoRa.onReceive(handlePacketLoRa);
-    LoRa.receive();
+    LoRa.receive(); 
 
     SD_MMC.setPins(SD_CLK, SD_CMD, SD_D0, SD_D1, SD_D2, SD_D3);
 
@@ -147,10 +150,31 @@ void setup() {
         return;
     }
 
+    uint8_t cardType = SD_MMC.cardType();
+
+    if(cardType == CARD_NONE){
+        USBSerial.println("No SD_MMC card attached");
+        return;
+    }
+
+    USBSerial.print("SD_MMC Card Type: ");
+    if(cardType == CARD_MMC){
+        USBSerial.println("MMC");
+    } else if(cardType == CARD_SD){
+        USBSerial.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        USBSerial.println("SDHC");
+    } else {
+        USBSerial.println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
+    USBSerial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
+
     if (SEND_POSITION_PACKET) {
       GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
       gpsSetup(GPS_BAUDRATE, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
-    }
+    } 
 }
 
 void loop() {
@@ -166,7 +190,7 @@ void loop() {
     while (GPS_PORT.available()) { 
       gps.encode(GPS_PORT.read()); 
     }
-  }
+  } 
 
   if (SEND_IMAGE_PACKET) {
     if (TransmissionSettings.transmissionEnable) {
@@ -176,7 +200,7 @@ void loop() {
    
   if (SEND_POSITION_PACKET) {
     sendTelemetryPacket();
-  }
+  } 
 }
 
 void handlePacketLoRa(int packetSize) {
@@ -412,7 +436,7 @@ void handlePacketDevice2(byte packetId, byte dataIn[], unsigned len) {
 }
 
 void handleFileTransfer1(byte dataIn[], unsigned dataSize) {
-  // Do something with the file
+  //Do something with the file
   if (DEBUG) {
     SERIAL_TO_PC.print("Received file of size "); SERIAL_TO_PC.println(dataSize);
   }
@@ -454,7 +478,7 @@ void handleFileTransfer1(byte dataIn[], unsigned dataSize) {
     delete[] packetToSend;
     delete[] packetData;
   }
-}
+} 
 
 void sendImagePacket() {
   // Sending a new picture if more than 15 seconds have passed since the last transmission.
@@ -519,31 +543,9 @@ void startTransmission() {
   const unsigned imageBufferSize = fileTransfer1.computeUncodedSize(imageTrueSize);
 
   //save_image(SD_MMC, "/image.jpg", fb->buf, imageTrueSize);
-  //saveImage(fb->buf, imageTrueSize);
+  saveImage(fb->buf, imageTrueSize); 
 
-  delay(2000);
-    uint8_t cardType = SD_MMC.cardType();
-
-    if(cardType == CARD_NONE){
-        USBSerial.println("No SD_MMC card attached");
-        return;
-    }
-
-    USBSerial.print("SD_MMC Card Type: ");
-    if(cardType == CARD_MMC){
-        USBSerial.println("MMC");
-    } else if(cardType == CARD_SD){
-        USBSerial.println("SDSC");
-    } else if(cardType == CARD_SDHC){
-        USBSerial.println("SDHC");
-    } else {
-        USBSerial.println("UNKNOWN");
-    }
-
-    uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
-    USBSerial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
-
-  writeFile(SD_MMC, "/helloAAA.txt", "HelloAAA ");
+  //writeFile(SD_MMC, "/helloAAA.txt", "HelloAAA ");
 
   if (imageTrueSize < MAX_IMAGE_SIZE) {
     uint8_t *dataArray;
@@ -569,23 +571,7 @@ void startTransmission() {
     esp_camera_deinit();
     turnOffCam();
     CameraSettings = CameraSettingsDefault;
-  }
-}
-
-void save_image(fs::FS &fs, const char *path, const uint8_t *message, size_t length) {
-    USBSerial.println("Saving image: " + String(path));
-
-    File file = fs.open(path, FILE_WRITE);
-    if (!file) {
-        USBSerial.println("Failed to open file for saving image");
-        return;
-    }
-    if (file.write(message, length)) {
-        USBSerial.println("Image saved");
-    } else {
-        USBSerial.println("Write failed");
-    }
-    file.close();
+  } 
 }
 
 void saveImage(const uint8_t *imageBuffer, size_t length) {
@@ -598,9 +584,7 @@ void saveImage(const uint8_t *imageBuffer, size_t length) {
   do {
     fileNumber++;
     sprintf(fileName, "/imageWritten%d.jpeg", fileNumber);
-    SERIAL_TO_PC.println("Saving image: " + String(fileName));
-    file = SD_MMC.open("/imageWritten.jpeg", FILE_WRITE);
-  } while (file); 
+  } while (SD_MMC.exists(fileName)); 
 
   file = SD_MMC.open(fileName, FILE_WRITE);
 
@@ -618,7 +602,7 @@ void saveImage(const uint8_t *imageBuffer, size_t length) {
 
   }
   delete[] fileName;
-}
+} 
 
 void updateTransmission() {
   const unsigned fragmentCutSize = fileTransfer1.getFragmentSize();
@@ -669,7 +653,7 @@ void updateTransmission() {
     }
     fileTransfer1.endTransmission();
     delete[] output;
-  }
+  } 
 }
 
 void sendAck() {
@@ -754,4 +738,5 @@ void LoRaSendPacketLR(uint8_t *packetData, unsigned len) {
     LoRa.setSignalBandwidth(LoRaSettings.BW);
   }
 }
-
+ 
+ 
