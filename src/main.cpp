@@ -173,8 +173,13 @@ void setup() {
 
     if (SEND_POSITION_PACKET) {
       GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
-      gpsSetup(GPS_BAUDRATE, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
+      delay(100);
+      makeConfig();
+      //gpsSetup(GPS_BAUDRATE, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
     } 
+
+    pinMode(BATTERY_MEASURE_PIN, INPUT);
+
 }
 
 void loop() {
@@ -186,9 +191,27 @@ void loop() {
     device2.decode(SERIAL_TO_PC.read());
   } 
 
+  // if (gps.location.isUpdated()) {
+  //   SERIAL_TO_PC.print("Lat: ");
+  //   SERIAL_TO_PC.print(gps.location.lat(), 6);
+  //   SERIAL_TO_PC.print(" Lng: ");
+  //   SERIAL_TO_PC.println(gps.location.lng(), 6);
+  // }
+
+  if (gps.time.isUpdated()) {
+    SERIAL_TO_PC.print("Time: ");
+    SERIAL_TO_PC.print(gps.time.hour());
+    SERIAL_TO_PC.print(":");
+    SERIAL_TO_PC.print(gps.time.minute());
+    SERIAL_TO_PC.print(":");
+    SERIAL_TO_PC.print(gps.time.second());
+    SERIAL_TO_PC.print(" Number of sats : ");
+    SERIAL_TO_PC.println(gps.satellites.value());
+  }
+
   if (SEND_POSITION_PACKET) {
     while (GPS_PORT.available()) { 
-      gps.encode(GPS_PORT.read()); 
+      gps.encode(GPS_PORT.read());
     }
   } 
 
@@ -657,7 +680,9 @@ void updateTransmission() {
 }
 
 void sendAck() {
-  SERIAL_TO_PC.println("Sending ACK");
+  if (DEBUG) {
+    SERIAL_TO_PC.println("Sending ACK");
+  }
   uint8_t *packetData; 
   uint8_t *packetToSend;
   packetData = new uint8_t[1];
@@ -685,6 +710,14 @@ void sendTelemetryPacket() {
     telemetryToSend.position.lat = gps.location.lat();
     telemetryToSend.position.lon = gps.location.lng();
     telemetryToSend.position.alt = gps.altitude.meters();
+
+    static double lastAltitude = 0;
+    
+    telemetryToSend.verticalSpeed = (gps.altitude.meters() - lastAltitude)/10.0;
+    telemetryToSend.horizontalSpeed = gps.speed.mps();
+    lastAltitude = gps.altitude.meters();
+
+    telemetryToSend.bat_level = analogRead(BATTERY_MEASURE_PIN);  // Coop Varta, 18.02.2023  v = 3100
 
     fill_BME_data(&telemetryToSend.barometer);
 

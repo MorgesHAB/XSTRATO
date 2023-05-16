@@ -1,4 +1,4 @@
-#define DEBUG true
+#define DEBUG false
 #define SENDER true
 
 #define SERIAL_TO_PC    USBSerial
@@ -36,6 +36,8 @@
 #define NEOPIXEL_PIN            21
 #define GREEN_LED_PIN           14
 
+#define BATTERY_MEASURE_PIN     13
+
 // GPS
 #if SENDER == true
 #define SEND_POSITION_PACKET  true
@@ -66,3 +68,4 @@
 #define FRAGMENT_SIZE_PC 200
 
 #define MAX_IMAGE_SIZE 50e3
+
