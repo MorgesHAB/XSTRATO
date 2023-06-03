@@ -10,7 +10,7 @@ bool cameraCaptureExample(); // debug only
 #define CAM_QUALITY_DEFAULT 24
 #define CAM_WB_DEFAULT true
 #define CAM_AWB_GAIN_DEFAULT true
-#define CAM_WB_MODE_DEFAULT 0
+#define CAM_WB_MODE_DEFAULT 2
 #define CAM_EXPOSURE_DEFAULT true
 #define CAM_EXPOSURE_VALUE_DEFAULT 600
 #define CAM_AEC2_DEFAULT true

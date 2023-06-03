@@ -174,7 +174,7 @@ void setup() {
 
     if (SEND_POSITION_PACKET) {
       GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
-      delay(100);
+      //delay(100);
       //makeConfig();
       //gpsSetup(GPS_BAUDRATE, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
     } 
@@ -185,23 +185,23 @@ void setup() {
 
 void loop() {
 
-  static unsigned lastByteReceived = 0;
+//   static unsigned lastByteReceived = 0;
 
-  while (LoRaRxBuffer.available()) {
-    device1.decode(LoRaRxBuffer.read());
-    lastByteReceived = millis();
-  }
+//   while (LoRaRxBuffer.available()) {
+//     device1.decode(LoRaRxBuffer.read());
+//     lastByteReceived = millis();
+//   }
 
-  if (millis()-lastByteReceived < 100) {
-    digitalWrite(GREEN_LED_PIN, HIGH);
-  }
-  else {
-    digitalWrite(GREEN_LED_PIN, LOW);
-  }
+//   if (millis()-lastByteReceived < 100) {
+//     digitalWrite(GREEN_LED_PIN, HIGH);
+//   }
+//   else {
+//     digitalWrite(GREEN_LED_PIN, LOW);
+//   }
 
-  while (SERIAL_TO_PC.available()) {
-    device2.decode(SERIAL_TO_PC.read());
-  } 
+//   while (SERIAL_TO_PC.available()) {
+//     device2.decode(SERIAL_TO_PC.read());
+//   } 
 
   // if (gps.location.isUpdated()) {
   //   SERIAL_TO_PC.print("Lat: ");
@@ -210,32 +210,39 @@ void loop() {
   //   SERIAL_TO_PC.println(gps.location.lng(), 6);
   // }
 
-  if (gps.time.isUpdated()) {
-    SERIAL_TO_PC.print("Time: ");
-    SERIAL_TO_PC.print(gps.time.hour());
-    SERIAL_TO_PC.print(":");
-    SERIAL_TO_PC.print(gps.time.minute());
-    SERIAL_TO_PC.print(":");
-    SERIAL_TO_PC.print(gps.time.second());
-    SERIAL_TO_PC.print(" Number of sats : ");
-    SERIAL_TO_PC.println(gps.satellites.value());
-  }
+//   if (gps.time.isUpdated()) {
+//     SERIAL_TO_PC.print("Time: ");
+//     SERIAL_TO_PC.print(gps.time.hour());
+//     SERIAL_TO_PC.print(":");
+//     SERIAL_TO_PC.print(gps.time.minute());
+//     SERIAL_TO_PC.print(":");
+//     SERIAL_TO_PC.print(gps.time.second());
+//     SERIAL_TO_PC.print(" Number of sats : ");
+//     SERIAL_TO_PC.println(gps.satellites.value());
+//   }
 
-  if (SEND_POSITION_PACKET) {
-    while (GPS_PORT.available()) { 
-      gps.encode(GPS_PORT.read());
-    }
-  } 
+//   if (SEND_POSITION_PACKET) {
+//     while (GPS_PORT.available()) { 
+//       gps.encode(GPS_PORT.read());
+//     }
+//   } 
 
-  if (SEND_IMAGE_PACKET) {
-    if (TransmissionSettings.transmissionEnable) {
-      sendImagePacket();
-    }
-  }
+//   if (SEND_IMAGE_PACKET) {
+//     if (TransmissionSettings.transmissionEnable) {
+//       sendImagePacket();
+//     }
+//   }
    
-  if (SEND_POSITION_PACKET) {
-    sendTelemetryPacket();
-  } 
+//   if (SEND_POSITION_PACKET) {
+//     sendTelemetryPacket();
+//   } 
+    while (SERIAL_TO_PC.available()) {
+        GPS_PORT.write(SERIAL_TO_PC.read());
+    }
+
+    while (GPS_PORT.available()) {
+        SERIAL_TO_PC.write(GPS_PORT.read());
+    }
 }
 
 void handlePacketLoRa(int packetSize) {
@@ -346,30 +353,6 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         toPrint += "Raw Gma Enable: " + String(CameraSettings.rawGmaEnable) + " ";
         SERIAL_TO_PC.println(toPrint);
       }
-
-      if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
-        if (DEBUG) {
-          SERIAL_TO_PC.println("Camera init failed");
-        }
-        return;
-      }
-
-      sensor_t* s = esp_camera_sensor_get();
-
-      s->set_framesize(s, framesize_t(CameraSettings.framesize));  
-      s->set_quality(s, CameraSettings.quality);
-      //s->set_brightness(s, 0);     // -2 to 2
-      //s->set_contrast(s, 0);       // -2 to 2
-      //s->set_saturation(s, 0);     // -2 to 2
-      s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
-      s->set_awb_gain(s, CameraSettings.awbGainEnable);       // 0 = disable , 1 = enable
-      s->set_wb_mode(s, CameraSettings.wbMode);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
-      
-      s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
-      s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
-      s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
-      //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
-      s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
 
       sendAck();
     }
@@ -561,6 +544,30 @@ void sendImagePacket() {
 void startTransmission() {
 
   fileTransfer1.setTransmissionOver(false);
+
+  if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
+    if (DEBUG) {
+      SERIAL_TO_PC.println("Camera init failed");
+    }
+    return;
+  }
+
+  sensor_t* s = esp_camera_sensor_get();
+
+  s->set_framesize(s, framesize_t(CameraSettings.framesize));  
+  s->set_quality(s, CameraSettings.quality);
+  //s->set_brightness(s, 0);     // -2 to 2
+  //s->set_contrast(s, 0);       // -2 to 2
+  //s->set_saturation(s, 0);     // -2 to 2
+  s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
+  s->set_awb_gain(s, CameraSettings.awbGainEnable);       // 0 = disable , 1 = enable
+  s->set_wb_mode(s, CameraSettings.wbMode);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
+  
+  s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
+  s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
+  s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
+  //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
+  s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
   
   // capture a frame
   camera_fb_t *fb = esp_camera_fb_get();
@@ -591,8 +598,8 @@ void startTransmission() {
     memcpy(dataArray, fb->buf, imageTrueSize);
 
     esp_camera_fb_return(fb);
-    //esp_camera_deinit();
-    //turnOffCam();
+    esp_camera_deinit();
+    turnOffCam();
 
     const unsigned outputLen = fileTransfer1.computeCodedSize(imageTrueSize);
     output = new byte[outputLen];
@@ -605,32 +612,9 @@ void startTransmission() {
       SERIAL_TO_PC.println("Image too big");
     }
     esp_camera_fb_return(fb);
-    //esp_camera_deinit();
-    //turnOffCam();
+    esp_camera_deinit();
+    turnOffCam();
     CameraSettings = CameraSettingsDefault;
-    if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
-      if (DEBUG) {
-        SERIAL_TO_PC.println("Camera init failed");
-      }
-      return;
-    }
-
-    sensor_t* s = esp_camera_sensor_get();
-
-    s->set_framesize(s, framesize_t(CameraSettings.framesize));  
-    s->set_quality(s, CameraSettings.quality);
-    //s->set_brightness(s, 0);     // -2 to 2
-    //s->set_contrast(s, 0);       // -2 to 2
-    //s->set_saturation(s, 0);     // -2 to 2
-    s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
-    s->set_awb_gain(s, CameraSettings.awbGainEnable);       // 0 = disable , 1 = enable
-    s->set_wb_mode(s, CameraSettings.wbMode);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
-    
-    s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
-    s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
-    s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
-    //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
-    s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
   } 
 }
 
