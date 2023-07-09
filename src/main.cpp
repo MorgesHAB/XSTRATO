@@ -84,6 +84,11 @@ unsigned char serial2bufferRead[1000];
 uint8_t *output; 
 
 void setup() {
+    SERIAL_TO_PC.begin(SERIAL_TO_PC_BAUD);
+    SERIAL_TO_PC.setTxTimeoutMs(0);
+    delay(2000);
+    SERIAL_TO_PC.println("Starting...");
+
     LoRaSettings.BW = LORA_LR_BW_DEFAULT;
     LoRaSettings.CR = LORA_LR_CR_DEFAULT;
     LoRaSettings.SF = LORA_LR_SF_DEFAULT;
@@ -100,14 +105,38 @@ void setup() {
 
     CameraSettings = CameraSettingsDefault;
 
+    if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
+      if (DEBUG) {
+        SERIAL_TO_PC.println("Camera init failed");
+      }
+      return;
+    }
+    else {
+      if (DEBUG) {
+        SERIAL_TO_PC.println("Camera init success");
+      }
+    }
+
+    sensor_t* s = esp_camera_sensor_get();
+
+    s->set_framesize(s, framesize_t(CameraSettings.framesize));  
+    s->set_quality(s, CameraSettings.quality);
+    s->set_brightness(s, -2);     // -2 to 2
+    //s->set_contrast(s, 0);       // -2 to 2
+    //s->set_saturation(s, 0);     // -2 to 2
+    s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
+    s->set_awb_gain(s, CameraSettings.awbGainEnable);       // 0 = disable , 1 = enable
+    s->set_wb_mode(s, CameraSettings.wbMode);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
+    
+    s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
+    s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
+    s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
+    //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
+    s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
+
     TransmissionSettings.transmissionEnable = TRANSMISSION_ENABLE_DEFAULT;
     TransmissionSettings.silenceTime = TRANSMISSION_SILENCE_TIME_DEFAULT;
     TransmissionSettings.marginRate = TRANSMISSION_MARGIN_RATE_DEFAULT; 
-
-    SERIAL_TO_PC.begin(SERIAL_TO_PC_BAUD);
-    SERIAL_TO_PC.setTxTimeoutMs(0);
-    delay(2000);
-    SERIAL_TO_PC.println("Starting...");
 
     pinMode(GREEN_LED_PIN, OUTPUT);
     led.begin();
@@ -211,14 +240,14 @@ void loop() {
   // }
 
   if (gps.time.isUpdated()) {
-    SERIAL_TO_PC.print("Time: ");
-    SERIAL_TO_PC.print(gps.time.hour());
-    SERIAL_TO_PC.print(":");
-    SERIAL_TO_PC.print(gps.time.minute());
-    SERIAL_TO_PC.print(":");
-    SERIAL_TO_PC.print(gps.time.second());
-    SERIAL_TO_PC.print(" Number of sats : ");
-    SERIAL_TO_PC.println(gps.satellites.value());
+    // SERIAL_TO_PC.print("Time: ");
+    // SERIAL_TO_PC.print(gps.time.hour());
+    // SERIAL_TO_PC.print(":");
+    // SERIAL_TO_PC.print(gps.time.minute());
+    // SERIAL_TO_PC.print(":");
+    // SERIAL_TO_PC.print(gps.time.second());
+    // SERIAL_TO_PC.print(" Number of sats : ");
+    // SERIAL_TO_PC.println(gps.satellites.value());
   }
 
   if (SEND_POSITION_PACKET) {
@@ -346,19 +375,10 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         toPrint += "Raw Gma Enable: " + String(CameraSettings.rawGmaEnable) + " ";
         SERIAL_TO_PC.println(toPrint);
       }
-
-      if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
-        if (DEBUG) {
-          SERIAL_TO_PC.println("Camera init failed");
-        }
-        return;
-      }
-
       sensor_t* s = esp_camera_sensor_get();
-
       s->set_framesize(s, framesize_t(CameraSettings.framesize));  
       s->set_quality(s, CameraSettings.quality);
-      //s->set_brightness(s, 0);     // -2 to 2
+      s->set_brightness(s, -2);     // -2 to 2
       //s->set_contrast(s, 0);       // -2 to 2
       //s->set_saturation(s, 0);     // -2 to 2
       s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
@@ -368,9 +388,8 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
       s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
       s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
-      //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
+      s->set_lenc(s, 1);           // 0 = disable , 1 = enable
       s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
-
       sendAck();
     }
     break;
@@ -561,9 +580,12 @@ void sendImagePacket() {
 void startTransmission() {
 
   fileTransfer1.setTransmissionOver(false);
-  
+
   // capture a frame
+  camera_fb_t *fbUseless = esp_camera_fb_get();
+  esp_camera_fb_return(fbUseless);
   camera_fb_t *fb = esp_camera_fb_get();
+
   if (!fb) {
     if (DEBUG) {
       SERIAL_TO_PC.println("Error with frame buffer pointer");
@@ -608,29 +630,6 @@ void startTransmission() {
     //esp_camera_deinit();
     //turnOffCam();
     CameraSettings = CameraSettingsDefault;
-    if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
-      if (DEBUG) {
-        SERIAL_TO_PC.println("Camera init failed");
-      }
-      return;
-    }
-
-    sensor_t* s = esp_camera_sensor_get();
-
-    s->set_framesize(s, framesize_t(CameraSettings.framesize));  
-    s->set_quality(s, CameraSettings.quality);
-    //s->set_brightness(s, 0);     // -2 to 2
-    //s->set_contrast(s, 0);       // -2 to 2
-    //s->set_saturation(s, 0);     // -2 to 2
-    s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
-    s->set_awb_gain(s, CameraSettings.awbGainEnable);       // 0 = disable , 1 = enable
-    s->set_wb_mode(s, CameraSettings.wbMode);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
-    
-    s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
-    s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
-    s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
-    //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
-    s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
   } 
 }
 
