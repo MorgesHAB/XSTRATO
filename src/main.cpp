@@ -203,9 +203,10 @@ void setup() {
 
     if (SEND_POSITION_PACKET) {
       GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
-      delay(100);
-      //makeConfig();
-      //gpsSetup(GPS_BAUDRATE, GPS_RATE, 2, 1, 0); // baud, Hz, mode, nmea, cog filter (0 = Off, 1 = On)
+      delay(1000);
+
+      byte nav4mode[] = {0xB5, 0x62, 0x06, 0x8A, 0x09, 0x00, 0x01, 0x01, 0x00, 0x00, 0x21, 0x00, 0x11, 0x20, 0x08, 0xF5, 0x5A};
+      GPS_PORT.write(nav4mode, sizeof(nav4mode));
     } 
 
     pinMode(BATTERY_MEASURE_PIN, INPUT);
@@ -240,14 +241,14 @@ void loop() {
   // }
 
   if (gps.time.isUpdated()) {
-    // SERIAL_TO_PC.print("Time: ");
-    // SERIAL_TO_PC.print(gps.time.hour());
-    // SERIAL_TO_PC.print(":");
-    // SERIAL_TO_PC.print(gps.time.minute());
-    // SERIAL_TO_PC.print(":");
-    // SERIAL_TO_PC.print(gps.time.second());
-    // SERIAL_TO_PC.print(" Number of sats : ");
-    // SERIAL_TO_PC.println(gps.satellites.value());
+    SERIAL_TO_PC.print("Time: ");
+    SERIAL_TO_PC.print(gps.time.hour());
+    SERIAL_TO_PC.print(":");
+    SERIAL_TO_PC.print(gps.time.minute());
+    SERIAL_TO_PC.print(":");
+    SERIAL_TO_PC.print(gps.time.second());
+    SERIAL_TO_PC.print(" Number of sats : ");
+    SERIAL_TO_PC.println(gps.satellites.value());
   }
 
   if (SEND_POSITION_PACKET) {
@@ -603,8 +604,6 @@ void startTransmission() {
 
   //save_image(SD_MMC, "/image.jpg", fb->buf, imageTrueSize);
   saveImage(fb->buf, imageTrueSize); 
-
-  //writeFile(SD_MMC, "/helloAAA.txt", "HelloAAA ");
 
   if (imageTrueSize < MAX_IMAGE_SIZE) {
     uint8_t *dataArray;
