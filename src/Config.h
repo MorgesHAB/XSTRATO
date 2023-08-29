@@ -1,4 +1,4 @@
-#define DEBUG true
+#define DEBUG false
 #define SENDER true
 
 #define SERIAL_TO_PC    USBSerial

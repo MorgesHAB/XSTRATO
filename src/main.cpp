@@ -105,38 +105,40 @@ void setup() {
 
     CameraSettings = CameraSettingsDefault;
 
-    if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
-      if (DEBUG) {
-        SERIAL_TO_PC.println("Camera init failed");
+    if (SENDER) {
+      if (!setupCam(framesize_t(CameraSettings.framesize), CameraSettings.quality)) {
+        if (DEBUG) {
+          SERIAL_TO_PC.println("Camera init failed");
+        }
+        return;
       }
-      return;
-    }
-    else {
-      if (DEBUG) {
-        SERIAL_TO_PC.println("Camera init success");
+      else {
+        if (DEBUG) {
+          SERIAL_TO_PC.println("Camera init success");
+        }
       }
+
+      sensor_t* s = esp_camera_sensor_get();
+
+      s->set_framesize(s, framesize_t(CameraSettings.framesize));  
+      s->set_quality(s, CameraSettings.quality);
+      s->set_brightness(s, -2);     // -2 to 2
+      //s->set_contrast(s, 0);       // -2 to 2
+      //s->set_saturation(s, 0);     // -2 to 2
+      s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
+      s->set_awb_gain(s, CameraSettings.awbGainEnable);       // 0 = disable , 1 = enable
+      s->set_wb_mode(s, CameraSettings.wbMode);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
+      
+      s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
+      s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
+      s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
+      //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
+      s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
+
+      TransmissionSettings.transmissionEnable = TRANSMISSION_ENABLE_DEFAULT;
+      TransmissionSettings.silenceTime = TRANSMISSION_SILENCE_TIME_DEFAULT;
+      TransmissionSettings.marginRate = TRANSMISSION_MARGIN_RATE_DEFAULT; 
     }
-
-    sensor_t* s = esp_camera_sensor_get();
-
-    s->set_framesize(s, framesize_t(CameraSettings.framesize));  
-    s->set_quality(s, CameraSettings.quality);
-    s->set_brightness(s, -2);     // -2 to 2
-    //s->set_contrast(s, 0);       // -2 to 2
-    //s->set_saturation(s, 0);     // -2 to 2
-    s->set_whitebal(s, CameraSettings.whiteBalanceEnable);       // 0 = disable , 1 = enable
-    s->set_awb_gain(s, CameraSettings.awbGainEnable);       // 0 = disable , 1 = enable
-    s->set_wb_mode(s, CameraSettings.wbMode);        // 0 to 4 - if awb_gain enabled (0 - Auto, 1 - Sunny, 2 - Cloudy, 3 - Office, 4 - Home)
-    
-    s->set_exposure_ctrl(s, CameraSettings.exposureEnable);  // 0 = disable , 1 = enable
-    s->set_aec_value(s, CameraSettings.exposureValue);    // 0 to 1200
-    s->set_aec2(s, CameraSettings.aec2Enable);           // 0 = disable , 1 = enable
-    //s->set_lenc(s, 0);           // 0 = disable , 1 = enable
-    s->set_raw_gma(s, CameraSettings.rawGmaEnable);        // 0 = disable , 1 = enable
-
-    TransmissionSettings.transmissionEnable = TRANSMISSION_ENABLE_DEFAULT;
-    TransmissionSettings.silenceTime = TRANSMISSION_SILENCE_TIME_DEFAULT;
-    TransmissionSettings.marginRate = TRANSMISSION_MARGIN_RATE_DEFAULT; 
 
     pinMode(GREEN_LED_PIN, OUTPUT);
     led.begin();
@@ -240,16 +242,16 @@ void loop() {
   //   SERIAL_TO_PC.println(gps.location.lng(), 6);
   // }
 
-  if (gps.time.isUpdated()) {
-    SERIAL_TO_PC.print("Time: ");
-    SERIAL_TO_PC.print(gps.time.hour());
-    SERIAL_TO_PC.print(":");
-    SERIAL_TO_PC.print(gps.time.minute());
-    SERIAL_TO_PC.print(":");
-    SERIAL_TO_PC.print(gps.time.second());
-    SERIAL_TO_PC.print(" Number of sats : ");
-    SERIAL_TO_PC.println(gps.satellites.value());
-  }
+  // if (gps.time.isUpdated()) {
+  //   SERIAL_TO_PC.print("Time: ");
+  //   SERIAL_TO_PC.print(gps.time.hour());
+  //   SERIAL_TO_PC.print(":");
+  //   SERIAL_TO_PC.print(gps.time.minute());
+  //   SERIAL_TO_PC.print(":");
+  //   SERIAL_TO_PC.print(gps.time.second());
+  //   SERIAL_TO_PC.print(" Number of sats : ");
+  //   SERIAL_TO_PC.print(gps.satellites.value());
+  // }
 
   if (SEND_POSITION_PACKET) {
     while (GPS_PORT.available()) { 
