@@ -1,8 +1,12 @@
-#define DEBUG false
-#define SENDER true
+//#define SENDER false  // In platformio.ini directly
 
-#define SERIAL_TO_PC    USBSerial
-#define SERIAL_TO_PC_BAUD 115200
+#define DEBUG               true
+#if !SENDER
+#define USE_UDP_BROADCAST   true      // transmit Xstrato Telemetry packet to Android App via WiFi broadcast
+#endif
+
+#define SERIAL_TO_PC        USBSerial
+#define SERIAL_TO_PC_BAUD   115200
 
 #define SD_CMD                  6
 #define SD_CLK                  7

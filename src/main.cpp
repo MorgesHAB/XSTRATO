@@ -23,6 +23,21 @@
 #include "FS.h"
 #include "SD_MMC.h"
 
+#if USE_UDP_BROADCAST
+#include <WiFi.h>
+#include <WiFiAP.h>
+#include <AsyncUDP.h>
+
+#define     UDP_TX_PORT         1235        // to send AV data by Wi-Fi UDP
+
+const char *ssid        = "XSTRATO-WiFi";
+const char *password    = "bonjour123$";
+
+AsyncUDP udp;
+
+#endif
+
+
 char filename[50];
 
 uint32_t colors[] = {
@@ -177,7 +192,7 @@ void setup() {
 
     SD_MMC.setPins(SD_CLK, SD_CMD, SD_D0, SD_D1, SD_D2, SD_D3);
 
-    if(!SD_MMC.begin()){
+    if(!SD_MMC.begin("/sdcard", false, false, 20000)){ // change speed otherwise sometimes problematic
         USBSerial.println("Card Mount Failed");
         return;
     }
@@ -201,7 +216,7 @@ void setup() {
     }
 
     uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
-    USBSerial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
+    USBSerial.printf("SD_MMC Card Size: %lluMB\n\r", cardSize);
 
     if (SEND_POSITION_PACKET) {
       GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
@@ -213,6 +228,20 @@ void setup() {
 
     pinMode(BATTERY_MEASURE_PIN, INPUT);
 
+#if USE_UDP_BROADCAST
+    // Wi-Fi config
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+      USBSerial.println("WiFi AP not found => creating an AP/");
+      WiFi.softAP(ssid, password);
+      // IPAddress myIP = WiFi.softAPIP();
+      // Serial.print("AP IP address: ");
+      // Serial.println(myIP);
+      // Serial.println("Server started");
+    }
+    USBSerial.println("WiFi started");
+#endif
 }
 
 void loop() {
@@ -315,23 +344,30 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
         SERIAL_TO_PC.println("Received Telemetry Packet ");
       }
       {
-      SerialTelemetryPacket telemetryPacket;
-      memcpy(&telemetryPacket, packetData, len);
+      SerialTelemetryPacket stelemetryPacket;
+      memcpy(&stelemetryPacket, packetData, len);
 
-      telemetryPacket.ground.rssi = LoRa.packetRssi();
-      telemetryPacket.ground.snr = LoRa.packetSnr();
-      telemetryPacket.ground.frequencyError = LoRa.packetFrequencyError();
+      stelemetryPacket.ground.rssi = LoRa.packetRssi();
+      stelemetryPacket.ground.snr = LoRa.packetSnr();
+      stelemetryPacket.ground.frequencyError = LoRa.packetFrequencyError();
 
-      uint8_t *packetData = new uint8_t[SerialTelemetryPacketSize];
-      memcpy(packetData, &telemetryPacket, SerialTelemetryPacketSize);
+#if USE_UDP_BROADCAST
+      // stelemetryPacket.telemetry.position.lat = 46.12;
+      // stelemetryPacket.telemetry.position.lon = 6.34;
+      // stelemetryPacket.telemetry.position.alt = 512.45;
+      udp.broadcastTo((uint8_t *)&stelemetryPacket, SerialTelemetryPacketSize, UDP_TX_PORT);
+#if DEBUG
+      USBSerial.println("Broadcasting Telemetry packet");
+#endif
+#endif
 
       size_t codedSize = device1.getCodedLen(SerialTelemetryPacketSize);
-      byte* codedBuffer = new byte[codedSize];
-      codedBuffer = device1.encode(packetId, packetData, SerialTelemetryPacketSize);
+      // uint8_t* codedBuffer = new byte[codedSize];
+      uint8_t* codedBuffer = device1.encode(packetId, (uint8_t*) &stelemetryPacket, SerialTelemetryPacketSize); // this is the optimized way
 
       SERIAL_TO_PC.write(codedBuffer, codedSize);
+
       delete[] codedBuffer;
-      delete[] packetData;
       }
     break;
     case CAPSULE_ID::LED:
