@@ -34,9 +34,11 @@ const char *ssid        = "XSTRATO-WiFi";
 const char *password    = "bonjour123$";
 
 AsyncUDP udp;
+bool wifi_co = false;
 
 #endif
 
+bool telemetry_authorized = true;   // say if authorized to transmit telemetry packet
 
 char filename[50];
 
@@ -97,6 +99,8 @@ TinyGPSCustom fixType(gps, "GNGSA", 2);
 unsigned char serial2bufferRead[1000];
 
 uint8_t *output; 
+
+#define USE_SD false
 
 void setup() {
     SERIAL_TO_PC.begin(SERIAL_TO_PC_BAUD);
@@ -190,6 +194,8 @@ void setup() {
     LoRa.onReceive(handlePacketLoRa);
     LoRa.receive(); 
 
+    if (USE_SD) {
+
     SD_MMC.setPins(SD_CLK, SD_CMD, SD_D0, SD_D1, SD_D2, SD_D3);
 
     if(!SD_MMC.begin("/sdcard", false, false, 20000)){ // change speed otherwise sometimes problematic
@@ -218,6 +224,8 @@ void setup() {
     uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
     USBSerial.printf("SD_MMC Card Size: %lluMB\n\r", cardSize);
 
+    }
+
     if (SEND_POSITION_PACKET) {
       GPS_PORT.begin(9600, 134217756U, GPS_RX, GPS_TX); // This for cmdIn
       delay(1000);
@@ -233,12 +241,16 @@ void setup() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-      USBSerial.println("WiFi AP not found => creating an AP/");
-      WiFi.softAP(ssid, password);
+      USBSerial.println("WiFi AP not found, going without WiFi");
+      // USBSerial.println("WiFi AP not found => creating an AP/");
+      //WiFi.softAP(ssid, password);
       // IPAddress myIP = WiFi.softAPIP();
       // Serial.print("AP IP address: ");
       // Serial.println(myIP);
       // Serial.println("Server started");
+      wifi_co = false;
+    } else {
+      wifi_co = true;
     }
     USBSerial.println("WiFi started");
 #endif
@@ -355,7 +367,7 @@ void handlePacketDevice1(byte packetId, byte *packetData, unsigned len) {
       // stelemetryPacket.telemetry.position.lat = 46.12;
       // stelemetryPacket.telemetry.position.lon = 6.34;
       // stelemetryPacket.telemetry.position.alt = 512.45;
-      udp.broadcastTo((uint8_t *)&stelemetryPacket, SerialTelemetryPacketSize, UDP_TX_PORT);
+      if (wifi_co) udp.broadcastTo((uint8_t *)&stelemetryPacket, SerialTelemetryPacketSize, UDP_TX_PORT);
 #if DEBUG
       USBSerial.println("Broadcasting Telemetry packet");
 #endif
@@ -605,6 +617,7 @@ void sendImagePacket() {
         // Will encode the file.
         // startTransmission(FRAMESIZE_HD, 12);
         fileTransfer1.setMarginRate(TransmissionSettings.marginRate);
+        telemetry_authorized = true;
         startTransmission();
     } else if (!fileTransfer1.isTransmissionOver()) {
         // Will send fragments one by one. There can be delay between two fragments if wanted.
@@ -613,6 +626,8 @@ void sendImagePacket() {
         // What you have to do is wait enough before the next time you call updateTransmission()
         // and to use LoRa.endPacket(true).
         updateTransmission();
+    } else if (fileTransfer1.isTransmissionOver()) {
+      telemetry_authorized = false; // start silence zone
     }
 }
 
@@ -670,7 +685,8 @@ void startTransmission() {
   } 
 }
 
-void saveImage(const uint8_t *imageBuffer, size_t length) {
+void saveImage(const uint8_t *imageBuffer, size_t length) { 
+  if (USE_SD) {
   static unsigned fileNumber = 0;
   File file; 
 
@@ -698,6 +714,7 @@ void saveImage(const uint8_t *imageBuffer, size_t length) {
 
   }
   delete[] fileName;
+  }
 } 
 
 void updateTransmission() {
@@ -772,48 +789,50 @@ void sendTelemetryPacket() {
   if (millis()-lastPositionSent > 10000) { //and gps.location.isUpdated()) {
     lastPositionSent = millis();
 
-    TelemetryPacket telemetryToSend;
+    if (telemetry_authorized) {
+      TelemetryPacket telemetryToSend;
 
-    // Send LoRa Packet using capsule 
-    uint8_t *packetData; 
-    uint8_t *packetToSend;
-    packetData = new uint8_t[TelemetryPacketSize];
-    packetToSend = new uint8_t[device1.getCodedLen(TelemetryPacketSize)];
+      // Send LoRa Packet using capsule
+      uint8_t *packetData;
+      uint8_t *packetToSend;
+      packetData = new uint8_t[TelemetryPacketSize];
+      packetToSend = new uint8_t[device1.getCodedLen(TelemetryPacketSize)];
 
-    telemetryToSend.position.lat = gps.location.lat();
-    telemetryToSend.position.lon = gps.location.lng();
-    telemetryToSend.position.alt = gps.altitude.meters();
+      telemetryToSend.position.lat = gps.location.lat();
+      telemetryToSend.position.lon = gps.location.lng();
+      telemetryToSend.position.alt = gps.altitude.meters();
 
-    static double lastAltitude = 0;
-    
-    telemetryToSend.verticalSpeed = (gps.altitude.meters() - lastAltitude)/10.0;
-    telemetryToSend.horizontalSpeed = gps.speed.mps();
+      static double lastAltitude = 0;
 
-    lastAltitude = gps.altitude.meters();
+      telemetryToSend.verticalSpeed = (gps.altitude.meters() - lastAltitude) / 10.0;
+      telemetryToSend.horizontalSpeed = gps.speed.mps();
 
-    telemetryToSend.bat_level = analogRead(BATTERY_MEASURE_PIN);  // Coop Varta, 18.02.2023  v = 3100
+      lastAltitude = gps.altitude.meters();
 
-    fill_BME_data(&telemetryToSend.barometer);
+      telemetryToSend.bat_level = analogRead(BATTERY_MEASURE_PIN);  // Coop Varta, 18.02.2023  v = 3100
 
-    telemetryToSend.balloon.rssi = LoRa.packetRssi();
-    telemetryToSend.balloon.snr = LoRa.packetSnr();
-    telemetryToSend.balloon.frequencyError = LoRa.packetFrequencyError();
+      fill_BME_data(&telemetryToSend.barometer);
 
-    telemetryToSend.packetTime = uint16_t(millis()/1000);
+      telemetryToSend.balloon.rssi = LoRa.packetRssi();
+      telemetryToSend.balloon.snr = LoRa.packetSnr();
+      telemetryToSend.balloon.frequencyError = LoRa.packetFrequencyError();
 
-    memcpy(packetData, &telemetryToSend, TelemetryPacketSize);
+      telemetryToSend.packetTime = uint16_t(millis() / 1000);
 
-    packetToSend = device1.encode(CAPSULE_ID::TELEMETRY, packetData, TelemetryPacketSize);
-    
-    LoRaSendPacketLR(packetToSend, device1.getCodedLen(TelemetryPacketSize));
-    
-    //LoRa.beginPacket();
-    //LoRa.write(packetToSend, device1.getCodedLen(12));
-    //LoRa.endPacket();
+      memcpy(packetData, &telemetryToSend, TelemetryPacketSize);
 
-    LoRa.receive();
-    delete[] packetData;
-    delete[] packetToSend;
+      packetToSend = device1.encode(CAPSULE_ID::TELEMETRY, packetData, TelemetryPacketSize);
+
+      LoRaSendPacketLR(packetToSend, device1.getCodedLen(TelemetryPacketSize));
+
+      // LoRa.beginPacket();
+      // LoRa.write(packetToSend, device1.getCodedLen(12));
+      // LoRa.endPacket();
+
+      LoRa.receive();
+      delete[] packetData;
+      delete[] packetToSend;
+    }
   }
 }
 
