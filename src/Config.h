@@ -16,7 +16,7 @@
 #define SD_D3                   5
 
 #define LORA_FREQ               868.42E6
-#define LORA_POWER              20
+#define LORA_POWER              2
 #define LORA_BW                 125.0e3
 #define LORA_SF                 11
 #define LORA_CR                 7
@@ -76,7 +76,7 @@
 #define FRAGMENT_SIZE           100
 
 #define TRANSMISSION_MARGIN_RATE_DEFAULT    1.6
-#define TRANSMISSION_MARGIN_RATE_MIN        1.5
+#define TRANSMISSION_MARGIN_RATE_MIN        1.4
 #define TRANSMISSION_MARGIN_RATE_MAX        3
 
 #define TRANSMISSION_SILENCE_TIME_DEFAULT   20
